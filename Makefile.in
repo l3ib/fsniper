@@ -10,12 +10,13 @@ datarootdir = @datarootdir@
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 
-OBJ = main.o add_watches.o keyvalcfg.o
+OBJ = main.o add_watches.o keyvalcfg.o recurse_add.o
 
 all:
 	$(CC) $(CFLAGS) -c main.c -o main.o
 	$(CC) $(CFLAGS) -c add_watches.c -o add_watches.o
 	$(CC) $(CFLAGS) -c keyvalcfg.c -o keyvalcfg.o
+	$(CC) $(CFLAGS) -c recurse_add.c -o recurse_add.o
 	$(CC) $(OBJ) $(LDFLAGS) -o sniper
 
 clean:
