@@ -1,0 +1,36 @@
+CC = @CC@
+
+CFLAGS    = @CFLAGS@ @FLAGS@ -D_GNU_SOURCE -ansi
+LDFLAGS   = @LDFLAGS@
+
+INSTALL   = @INSTALL@
+bindir    = @bindir@
+mandir    = @mandir@
+datarootdir = @datarootdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+OBJ = main.o add_watches.o keyvalcfg.o
+
+all:
+	$(CC) $(CFLAGS) -c main.c -o main.o
+	$(CC) $(CFLAGS) -c add_watches.c -o add_watches.o
+	$(CC) $(CFLAGS) -c keyvalcfg.c -o keyvalcfg.o
+	$(CC) $(OBJ) $(LDFLAGS) -o sniper
+
+clean:
+	rm -f *.o sniper
+
+distclean: clean
+	rm -rf autom4te.cache/ config.log config.status configure Makefile
+
+install: all
+	$(INSTALL) -m 755 -d $(DESTDIR)$(bindir)
+	$(INSTALL) -m 755 sniper $(DESTDIR)$(bindir)
+.PHONY: install
+
+uninstall:
+	rm -f $(DESTDIR)$(bindir)/sniper
+	rmdir $(DESTDIR)$(bindir);true
+.PHONY: uninstall
+
