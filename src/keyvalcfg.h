@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301  USA */
 
+#ifndef _KEYVALCFG_H_
+#define _KEYVALCFG_H_
 
 /* a key->value config file parser (and writer.) see example.txt for an
  * example config file. */
@@ -87,3 +89,5 @@ struct keyval_section * keyval_parse(const char * filename);
  * failure. if filename is NULL, writes to stdout. */
 unsigned char keyval_write(struct keyval_section * section,
 	const char * filename);
+
+#endif

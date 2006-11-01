@@ -1,0 +1,4 @@
+Tue Oct 31 20:33:54 EST 2006	Dave Foster <daf@minuslab.net>
+	* Starting using changelog.
+	* Inserted signal handlers for quit signals.
+	* Moved config to be a global var.

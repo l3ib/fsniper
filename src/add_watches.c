@@ -8,15 +8,16 @@
 #include <wordexp.h>
 #include "keyvalcfg.h"
 
+extern struct keyval_section *config;
+
 /* parses the config and adds inotify watches to the fd */
-void add_watches(int fd, char* configfile)
+void add_watches(int fd)
 {
 	struct keyval_section *config;
 	struct keyval_section *child;
 	char* directory;
 	wordexp_t wexp;
 
-	config = keyval_parse(configfile);
 	for (child = config->children; child; child = child->next)
 	{
 		wordexp(child->name, &wexp, 0);
