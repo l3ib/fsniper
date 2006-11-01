@@ -49,7 +49,7 @@ void recurse_add(int fd, char* directory, struct watchnode* node)
 }
 
 /* parses the config and adds inotify watches to the fd */
-struct watchnode* add_watches(int fd, struct keyval_section* config)
+struct watchnode* add_watches(int fd)
 {
 	struct keyval_section* child;
 	char* directory;
