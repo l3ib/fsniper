@@ -153,11 +153,11 @@ static char * sanitize_str(char * source, size_t n) {
 /* removes c-style comments from 'string'; replaces them with whitespace.
  * not the most elegant method of doing this (it modifies the argument it
  * receives.) */
-static void strip_comments(char * string) {
+/*static void strip_comments(char * string) {
 	for (; *string; string++) {
-		if (string[0] == '/' && string[1] == '*') {
+		if (string[0] == '/' && string[1] == '*') {*/
 				/* we're starting a comment */
-				size_t pos = 0;
+/*				size_t pos = 0;
 				while (string[pos] && !(string[pos] == '*' && string[pos + 1] == '/')) {
 					string[pos] = ' ';
 					pos++;
@@ -167,6 +167,18 @@ static void strip_comments(char * string) {
 				string[pos + 1] = ' ';
 
 				string += pos + 1;
+		}
+	}
+}*/
+
+/* removes # comments from 'string' and replaces them with whitespace. */
+static void strip_comments(char * string) {
+	for (; *string; string++) {
+		if (*string == '#') {
+			/* we've found a comment. it should last until the end of the line. */
+			for (; *string && (*string != '\n'); string++) {
+				*string = ' ';
+			}
 		}
 	}
 }
