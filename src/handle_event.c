@@ -23,8 +23,7 @@ void handle_event(struct watchnode* node, struct inotify_event* event)
 		return;
 
 	execute = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + strlen("file -ib ") + 1);
-	strcpy(execute, "");
-	strcat(execute, "file -ib ");
+	strcpy(execute, "file -ib ");
 	strcat(execute, node->path);
 	strcat(execute, "/");
 	strcat(execute, event->name);
@@ -40,15 +39,15 @@ void handle_event(struct watchnode* node, struct inotify_event* event)
 	while (fgets(temp, 29, pipe) != NULL)
 	{
 		free(mimetype);
-		mimetype = malloc(strlen(temp2) + strlen(temp));
-		strcat(mimetype, temp2);
+		mimetype = malloc(strlen(temp2) + strlen(temp) + 1);
+		strcpy(mimetype, temp2);
 		strcat(mimetype, temp);
 		free(temp2);
 	} 
 	free(temp);
 
 /* todo:
-	 parse mimetype (free it later?)
+	 parse mimetype (free it when done)
 	 find handlers (if any) for that mimetype
 	 execute handlers, continuing on to the next if exit code != 0
 */
