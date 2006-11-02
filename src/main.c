@@ -30,7 +30,6 @@ int main(int argc, char** argv)
 	int fd, len, i = 0;
 	char buf[BUF_LEN]; 
 	struct inotify_event *event;
-	struct keyval_section* config;
 	struct watchnode* node;
 
 /* set up signals for exiting */ 
