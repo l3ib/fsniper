@@ -52,6 +52,7 @@ void recurse_add(int fd, char* directory, struct watchnode* node)
 struct watchnode* add_watches(int fd)
 {
 	struct keyval_section* child;
+	struct keyval_pair* recurse;
 	char* directory;
 	wordexp_t wexp;
 	struct watchnode* firstnode;
@@ -68,8 +69,9 @@ struct watchnode* add_watches(int fd)
 		node->next = malloc(sizeof(struct watchnode));
 		node->next->next= NULL;
 		node = node->next;
-		if (keyval_pair_find(child->keyvals, "recurse")->value != NULL && strcmp(keyval_pair_find(child->keyvals, "recurse")->value, "true") == 0)
-			recurse_add(fd, directory, node);
+		if ((recurse = keyval_pair_find(child->keyvals, "recurse")))
+			if (recurse->value != NULL && (strcmp(recurse->value, "true")==0))
+				recurse_add(fd, directory, node);
 		wordfree(&wexp);
 		free(directory);
 	}
