@@ -23,11 +23,12 @@ void handle_event(struct watchnode* node, struct inotify_event* event)
 		return;
 
 	execute = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + strlen("file -ib ") + 1);
+	strcpy(execute, "");
 	strcat(execute, "file -ib ");
 	strcat(execute, node->path);
 	strcat(execute, "/");
 	strcat(execute, event->name);
- 
+	 
 	if ( (pipe = popen(execute, "r")) == NULL )
 		perror("popen");
 
