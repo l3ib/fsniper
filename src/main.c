@@ -23,7 +23,6 @@ void handle_quit_signal(int signum)
 	keyval_section_free_all(config);
 	exit(0); 
 } 
-#define watch_directory "/home/andrew/tmp/inotify/tmp"
 
 int main(int argc, char** argv)
 {
