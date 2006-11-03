@@ -53,7 +53,7 @@ void handle_event(struct watchnode* node, struct inotify_event* event)
 
 		for (i=0; mimetype[i] && child->name[i] && abort == 0; i++)
 		{
-			if (child->name[i] == '/')
+			if (foundslash == 0 && child->name[i] == '/')
 				foundslash = 1;
 
 			if (mimetype[i] != child->name[i] && child->name[i] != '*')
