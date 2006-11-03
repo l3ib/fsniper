@@ -11,6 +11,8 @@ AC_HEADER_STDC([])
 AC_PROG_CC
 AC_PROG_INSTALL
 
+AC_CHECK_LIB(magic, magic_open, [], AC_MSG_ERROR([libmagic not found]))
+
 AC_ARG_ENABLE([debug],
 AC_HELP_STRING([--enable-debug],[build a debug version [[default=no]]]),
 	[DEBUG=$enableval], [DEBUG="no"])
