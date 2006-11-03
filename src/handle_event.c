@@ -27,7 +27,7 @@ void handle_event(struct watchnode* node, struct inotify_event* event)
 	strcat(execute, node->path);
 	strcat(execute, "/");
 	strcat(execute, event->name);
-	 
+	
 	if ( (pipe = popen(execute, "r")) == NULL )
 		perror("popen");
 
@@ -35,16 +35,18 @@ void handle_event(struct watchnode* node, struct inotify_event* event)
 
 	temp2 = strdup("");
 	temp = malloc(30);
-	mimetype = malloc(1);
+	mimetype = strdup("");
 	while (fgets(temp, 29, pipe) != NULL)
 	{
+		free(temp2);
+		temp2 = strdup(mimetype);
 		free(mimetype);
 		mimetype = malloc(strlen(temp2) + strlen(temp) + 1);
 		strcpy(mimetype, temp2);
 		strcat(mimetype, temp);
-		free(temp2);
 	} 
 	free(temp);
+	free(temp2);
 
 /* todo:
 	 parse mimetype (free it when done)
