@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 			if (event->len)
 			{
 				printf ("name=%s\n", event->name);
-				handle_event(node, event);
+				handle_event(event);
 			}
 			i += EVENT_SIZE + event->len;
 		}

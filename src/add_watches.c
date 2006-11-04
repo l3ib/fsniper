@@ -10,9 +10,10 @@
 #include "watchnode.h"
 
 extern struct keyval_section *config;
+extern struct watchnode *node;
 
 /* recursively add watches */
-void recurse_add(int fd, char* directory, struct watchnode* node)
+void recurse_add(int fd, char* directory)
 {
   struct stat dir_stat;
   struct dirent* entry;
@@ -42,7 +43,7 @@ void recurse_add(int fd, char* directory, struct watchnode* node)
 			node->next = malloc(sizeof(struct watchnode));
 			node->next->next = NULL;
 			node = node->next;
-			recurse_add(fd, path, node);
+			recurse_add(fd, path);
 		}
 		free(path);
 	}
@@ -56,7 +57,7 @@ struct watchnode* add_watches(int fd)
 	char* directory;
 	wordexp_t wexp;
 	struct watchnode* firstnode;
-	struct watchnode* node = malloc(sizeof(struct watchnode));
+	node = malloc(sizeof(struct watchnode));
 	node->next = NULL;
 	firstnode = node;
 
@@ -72,7 +73,7 @@ struct watchnode* add_watches(int fd)
 		node = node->next;
 		if ((recurse = keyval_pair_find(child->keyvals, "recurse")))
 			if (recurse->value != NULL && (strcmp(recurse->value, "true")==0))
-				recurse_add(fd, directory, node);
+				recurse_add(fd, directory);
 		wordfree(&wexp);
 		free(directory);
 	}

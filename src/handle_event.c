@@ -7,8 +7,9 @@
 #include "watchnode.h"
 
 extern struct keyval_section *config;
+extern struct watchnode *node;
 
-void handle_event(struct watchnode* node, struct inotify_event* event)
+void handle_event(struct inotify_event* event)
 {
 	char abort;
 	char foundslash;
