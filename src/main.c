@@ -16,11 +16,21 @@
 
 /* one global config */ 
 struct keyval_section *config; 
+
+/* watchnode global for this file */
+struct watchnode *node;
   
 void handle_quit_signal(int signum) 
 {
 	/* free config here */ 
 	keyval_section_free_all(config);
+	/* free watchnode elements */
+  while (node) {
+    struct watchnode* next = node->next;
+    if (node->path) free(node->path);
+    free(node);
+    node = next;
+	}
 	exit(0); 
 } 
 
@@ -29,7 +39,6 @@ int main(int argc, char** argv)
 	int fd, len, i = 0;
 	char buf[BUF_LEN]; 
 	struct inotify_event *event;
-	struct watchnode* node;
 
 /* set up signals for exiting */ 
 	signal(SIGINT, &handle_quit_signal); 
@@ -57,6 +66,4 @@ int main(int argc, char** argv)
 		}
 		i = 0;
 	}
-	keyval_section_free_all(config);
-/* TODO: free the linked list stuff (path in each node and the actual nodes) */
 }
