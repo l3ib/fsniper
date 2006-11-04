@@ -13,12 +13,15 @@ void handle_event(struct inotify_event* event)
 {
 	char abort;
 	char foundslash;
-	char* filename;
-	const char* mimetype;
+	char *filename;
+	char *handlerexec;
+	const char *mimetype;
 	magic_t magic;
 	int i, j;
-	struct keyval_section* child;
-
+	struct keyval_section *child;
+	struct keyval_pair *handler;
+	
+/* find the node that corresponds to the event's descriptor */
 	for (; node; node = node->next)
 	{
 		if (node->wd == event->wd)
@@ -28,6 +31,7 @@ void handle_event(struct inotify_event* event)
 	if (!node)
 		return;
 
+/* combine the name inotify gives with the full path to the file */
 	filename = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + 1);
 	strcpy(filename, node->path);
 	strcat(filename, "/");
@@ -44,8 +48,7 @@ void handle_event(struct inotify_event* event)
 	if (mimetype == NULL)
 		perror("magic_file");
 
-	free(filename);
-
+/* parse the mimetype to see if it matches the mimetype in the config. */
 	abort = 0;
 	for (child = node->section->children; child; child = child->next)
 	{
@@ -89,13 +92,33 @@ void handle_event(struct inotify_event* event)
 	}
 
 	if (abort == 1)
+	{
+		free(filename);
+		magic_close(magic);
 		return;
+	}
 
-	printf("settled on cn: %s\n", child->name); 
+/* find the handlers which correspond to the mimetype, and continue executing them
+   until we've run them all or one returns 0 */	
+	for (handler = child->keyvals; handler; handler = child->keyvals->next)
+	{
+		if (strcmp(handler->key, "handler") != 0)
+			break;
+
+		handlerexec = malloc(strlen(handler->value) + strlen(filename) + strlen(" ") + 1);
+		strcpy(handlerexec, handler->value);
+		strcat(handlerexec, " ");
+		strcat(handlerexec, filename);
+
+		if (system(handlerexec) == 0)
+		{
+			free(handlerexec);
+			break;
+		}
+		else
+			free(handlerexec);
+	}
+
+	free(filename);
 	magic_close(magic);
-
-/* todo:
-	 find handlers (if any) for that mimetype
-	 execute handlers, continuing on to the next if exit code != 0
-*/
 }

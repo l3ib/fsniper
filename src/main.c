@@ -51,6 +51,7 @@ int main(int argc, char** argv)
 	config = keyval_parse("test.conf");
 	node = add_watches(fd);
 
+/* wait for inotify events and then handle them */
 	while (1)
 	{
 		len = read(fd, buf, BUF_LEN);
@@ -58,10 +59,7 @@ int main(int argc, char** argv)
 		{
 			event = (struct inotify_event *) &buf[i];
 			if (event->len)
-			{
-				printf ("name=%s\n", event->name);
 				handle_event(event);
-			}
 			i += EVENT_SIZE + event->len;
 		}
 		i = 0;
