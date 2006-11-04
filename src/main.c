@@ -19,9 +19,13 @@ struct keyval_section *config;
 
 /* watchnode global for this file */
 struct watchnode *node;
-  
+
+/* used for verbose printfs throughout sniper */
+unsigned char verbose;  
+
 void handle_quit_signal(int signum) 
 {
+	if (verbose) printf("received signal %d. exiting.\n", signum);
 	/* free config here */ 
 	keyval_section_free_all(config);
 	/* free watchnode elements */
@@ -39,6 +43,7 @@ int main(int argc, char** argv)
 	int fd, len, i = 0;
 	char buf[BUF_LEN]; 
 	struct inotify_event *event;
+	char *configfile = "test.conf";
 
 /* set up signals for exiting */ 
 	signal(SIGINT, &handle_quit_signal); 
@@ -48,7 +53,8 @@ int main(int argc, char** argv)
 	if (fd < 0)
 		perror("inotify_init");
 
-	config = keyval_parse("test.conf");
+	if (verbose) printf("parsing config file: %s\n", configfile);
+	config = keyval_parse(configfile);
 	node = add_watches(fd);
 
 /* wait for inotify events and then handle them */

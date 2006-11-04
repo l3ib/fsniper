@@ -11,12 +11,13 @@
 
 extern struct keyval_section *config;
 extern struct watchnode *node;
+extern unsigned char *verbose;
 
 /* recursively add watches */
-void recurse_add(int fd, char* directory)
+void recurse_add(int fd, char *directory)
 {
   struct stat dir_stat;
-  struct dirent* entry;
+  struct dirent *entry;
 	char* path;
   DIR* dir = opendir(directory);
 
@@ -37,7 +38,7 @@ void recurse_add(int fd, char* directory)
 		}
 		if (S_ISDIR(dir_stat.st_mode))
 		{
-			printf("adding watch for: %s\n", path);
+			if (verbose) printf("adding watch for: %s\n", path);
 			node->wd = inotify_add_watch(fd, path, IN_CLOSE_WRITE);
 			node->path = strdup(path);
 			node->next = malloc(sizeof(struct watchnode));
@@ -65,6 +66,7 @@ struct watchnode* add_watches(int fd)
 	{
 		wordexp(child->name, &wexp, 0);
 		directory = strdup(wexp.we_wordv[0]);
+		if (verbose) printf("adding watch for: %s\n", directory);
 		node->wd = inotify_add_watch(fd, directory, IN_CLOSE_WRITE);
 		node->path = strdup(wexp.we_wordv[0]);
 		node->section = child;

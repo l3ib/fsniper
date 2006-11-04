@@ -8,6 +8,7 @@
 
 extern struct keyval_section *config;
 extern struct watchnode *node;
+extern unsigned char *verbose;
 
 void handle_event(struct inotify_event* event)
 {
@@ -110,6 +111,7 @@ void handle_event(struct inotify_event* event)
 		strcat(handlerexec, " ");
 		strcat(handlerexec, filename);
 
+		printf("executing: %s\n", handlerexec);
 		if (system(handlerexec) == 0)
 		{
 			free(handlerexec);
