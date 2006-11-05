@@ -6,6 +6,14 @@
 #include "keyvalcfg.h"
 #include "watchnode.h"
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef USE_EFENCE
+#include <efence.h>
+#endif
+
 extern struct keyval_section *config;
 extern struct watchnode *node;
 extern unsigned char *verbose;

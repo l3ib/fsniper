@@ -9,6 +9,14 @@
 #include "keyvalcfg.h"
 #include "watchnode.h"
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef USE_EFENCE
+#include <efence.h>
+#endif
+
 extern struct keyval_section *config;
 extern struct watchnode *node;
 extern unsigned char *verbose;
@@ -71,6 +79,8 @@ struct watchnode* add_watches(int fd)
 		node->path = strdup(wexp.we_wordv[0]);
 		node->section = child;
 		node->next = malloc(sizeof(struct watchnode));
+		node->next->path = NULL;
+		node->next->section = NULL;
 		node->next->next= NULL;
 		node = node->next;
 		if ((recurse = keyval_pair_find(child->keyvals, "recurse")))

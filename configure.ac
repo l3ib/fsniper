@@ -21,6 +21,15 @@ if test "$DEBUG" = "yes"; then
 else
 	FLAGS=""
 fi
+
+AC_ARG_ENABLE([efence],
+AC_HELP_STRING([--enable-efence],[build with electric fence [[default=no]]]),
+  [EFENCE=$enableval], [EFENCE="no"])
+if test "$EFENCE" = "yes"; then
+  AC_DEFINE(USE_EFENCE, 1, [Define to enable electric fence])
+	LIBS="-lefence $LIBS"
+fi
+
 AC_SUBST(FLAGS)
 
 AC_CONFIG_FILES( Makefile src/Makefile )
