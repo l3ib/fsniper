@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <wait.h>
 #include <signal.h>
 #include <string.h>
 #include "keyvalcfg.h"
@@ -35,6 +36,7 @@ struct watchnode *node = NULL;
 /* used for verbose printfs throughout sniper */
 unsigned char verbose;  
 
+/* handler for any quit signal.  cleans up memory and exits gracefully. */
 void handle_quit_signal(int signum) 
 {
 	struct watchnode* cur, *prev;
@@ -55,6 +57,13 @@ void handle_quit_signal(int signum)
 	exit(0); 
 } 
 
+/* handler for reaping children after the fork is done. */
+void handle_child_signal()
+{
+	union wait status;
+    while (wait3(&status, WNOHANG, 0) > 0) {} 
+}
+
 int main(int argc, char** argv)
 {
 	int fd, len, i = 0;
@@ -65,11 +74,12 @@ int main(int argc, char** argv)
 	struct inotify_event *event;
 	char *configfile = "test.conf";
 
-/* set up signals for exiting */ 
+	/* set up signals for exiting/reaping */ 
 	signal(SIGINT, &handle_quit_signal); 
 	signal(SIGTERM, &handle_quit_signal);
+	signal(SIGCHLD, &handle_child_signal);
 
-/* check for ~/.config/sniper/ and create it if needed */
+	/* check for ~/.config/sniper/ and create it if needed */
 	home = getenv("HOME");
 	if (!home)
 	{
@@ -99,7 +109,7 @@ int main(int argc, char** argv)
 	config = keyval_parse(configfile);
 	node = add_watches(fd);
 
-/* wait for inotify events and then handle them */
+	/* wait for inotify events and then handle them */
 	while (1)
 	{
 		len = read(fd, buf, BUF_LEN);
@@ -107,7 +117,10 @@ int main(int argc, char** argv)
 		{
 			event = (struct inotify_event *) &buf[i];
 			if (event->len)
-				handle_event(event);
+				if (fork() == 0) {
+					handle_event(event);
+					return 0;
+				}
 			i += EVENT_SIZE + event->len;
 		}
 		i = 0;

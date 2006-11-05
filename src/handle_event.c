@@ -104,7 +104,7 @@ void handle_event(struct inotify_event* event)
 	{
 		free(filename);
 		magic_close(magic);
-		return;
+		exit(-1);
 	}
 
 /* find the handlers which correspond to the mimetype, and continue executing them
@@ -131,4 +131,6 @@ void handle_event(struct inotify_event* event)
 
 	free(filename);
 	magic_close(magic);
+
+	exit(0);
 }
