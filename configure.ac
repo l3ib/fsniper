@@ -26,6 +26,8 @@ AC_ARG_ENABLE([efence],
 AC_HELP_STRING([--enable-efence],[build with electric fence [[default=no]]]),
   [EFENCE=$enableval], [EFENCE="no"])
 if test "$EFENCE" = "yes"; then
+	AC_CHECK_HEADER([efence.h],[],
+		[AC_MSG_ERROR([efence.h required for electric fence support])])
   AC_DEFINE(USE_EFENCE, 1, [Define to enable electric fence])
 	LIBS="-lefence $LIBS"
 fi
