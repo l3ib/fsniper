@@ -15,25 +15,30 @@
 #define BUF_LEN        (1024 * (EVENT_SIZE + 16))
 
 /* one global config */ 
-struct keyval_section *config; 
+struct keyval_section *config = NULL; 
 
 /* watchnode global for this file */
-struct watchnode *node;
+struct watchnode *node = NULL;
 
 /* used for verbose printfs throughout sniper */
 unsigned char verbose;  
 
 void handle_quit_signal(int signum) 
 {
+	struct watchnode* cur, *prev;
+
 	if (verbose) printf("received signal %d. exiting.\n", signum);
 	/* free config here */ 
 	keyval_section_free_all(config);
+
 	/* free watchnode elements */
-  while (node) {
-    struct watchnode* next = node->next;
-    if (node->path) free(node->path);
-    free(node);
-    node = next;
+	cur = node;
+	while (cur) {
+		if (cur->path)
+			free(cur->path);
+		prev = cur;
+		cur = cur->next;
+		free(prev);
 	}
 	exit(0); 
 } 
