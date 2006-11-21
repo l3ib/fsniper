@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <string.h>
 #include "keyvalcfg.h"
+#include "argparser.h"
 #include "watchnode.h"
 #include "add_watches.h"
 #include "handle_event.h"
@@ -34,14 +35,15 @@ struct keyval_section *config = NULL;
 struct watchnode *node = NULL;
 
 /* used for verbose printfs throughout sniper */
-unsigned char verbose;  
+unsigned char verbose = 0;  
 
 /* handler for any quit signal.  cleans up memory and exits gracefully. */
 void handle_quit_signal(int signum) 
 {
-	struct watchnode* cur, *prev;
+	struct watchnode *cur, *prev;
 
 	if (verbose) printf("received signal %d. exiting.\n", signum);
+
 	/* free config here */ 
 	keyval_section_free_all(config);
 
@@ -69,15 +71,40 @@ int main(int argc, char** argv)
 	int fd, len, i = 0;
 	char buf[BUF_LEN]; 
 	char *configdir;
+	char *configfile;
 	char *home;
+	char *error_str;
+	char *version_str = "sniper SVN";
 	DIR *dir;
 	struct inotify_event *event;
-	char *configfile = "test.conf";
+	struct argument *argument = argument_new();
 
 	/* set up signals for exiting/reaping */ 
 	signal(SIGINT, &handle_quit_signal); 
 	signal(SIGTERM, &handle_quit_signal);
 	signal(SIGCHLD, &handle_child_signal);
+
+	/* add command line arguments */
+	argument_register(argument, "help", "Prints this help text.", 0);
+	argument_register(argument, "version", "Prints version information.", 0);
+
+  if ((error_str = argument_parse(argument, argc, argv))) {
+    printf("Error: %s", error_str);
+    free(error_str);
+    return 1;
+  }
+
+  if (argument_exists(argument, "help")) {
+    char *help_txt = argument_get_help_text(argument);
+    printf("%s", help_txt);
+    free(help_txt);
+		return 0;
+  }
+
+  if (argument_exists(argument, "version")) {
+    printf("%s\n", version_str);
+		return 0;
+  }
 
 	/* check for ~/.config/sniper/ and create it if needed */
 	home = getenv("HOME");
@@ -87,7 +114,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	configdir = malloc(strlen(home) + strlen ("/.config") + strlen ("/sniper") + 1);
+	configdir = malloc(strlen(home) + strlen("/.config") + strlen("/sniper") + 1);
 
 	sprintf(configdir, "%s/.config", home);
 	if ( (dir = opendir(configdir)) == NULL)
@@ -99,6 +126,19 @@ int main(int argc, char** argv)
 		mkdir(configdir, S_IRWXU | S_IRWXG | S_IRWXO);
 	closedir(dir);
 
+	/* if a config file has not been specified, use default */
+	if (argument_get_extra(argument))
+	{
+		configfile = strdup(argument_get_extra(argument));
+	}
+	else
+	{
+		configfile = malloc (strlen(configdir) + strlen ("/config") + 1);
+		strcpy(configfile, configdir);
+		strcat(configfile, "/config");
+	}
+
+	argument_free(argument);
 	free(configdir);
 
 	fd = inotify_init();
@@ -107,8 +147,9 @@ int main(int argc, char** argv)
 
 	if (verbose) printf("parsing config file: %s\n", configfile);
 	config = keyval_parse(configfile);
-	node = add_watches(fd);
+	free(configfile);
 
+	node = add_watches(fd);
 	/* wait for inotify events and then handle them */
 	while (1)
 	{
