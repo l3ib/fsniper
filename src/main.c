@@ -87,6 +87,7 @@ int main(int argc, char** argv)
 	/* add command line arguments */
 	argument_register(argument, "help", "Prints this help text.", 0);
 	argument_register(argument, "version", "Prints version information.", 0);
+	argument_register(argument, "daemon", "Run as a daemon.", 0);
 
   if ((error_str = argument_parse(argument, argc, argv))) {
     printf("Error: %s", error_str);
@@ -105,6 +106,9 @@ int main(int argc, char** argv)
     printf("%s\n", version_str);
 		return 0;
   }
+
+	if (argument_exists(argument, "daemon") && fork())
+		return 0;
 
 	/* check for ~/.config/sniper/ and create it if needed */
 	home = getenv("HOME");
