@@ -114,10 +114,11 @@ void handle_event(struct inotify_event* event)
 		if (strcmp(handler->key, "handler") != 0)
 			break;
 
-		handlerexec = malloc(strlen(handler->value) + strlen(filename) + strlen(" ") + 1);
+		handlerexec = malloc(strlen(handler->value) + strlen(filename) + strlen(" \"") + strlen("\"") + 1);
 		strcpy(handlerexec, handler->value);
-		strcat(handlerexec, " ");
+		strcat(handlerexec, " \"");
 		strcat(handlerexec, filename);
+		strcat(handlerexec, "\"");
 
 		printf("executing: %s\n", handlerexec);
 		if (system(handlerexec) == 0)
