@@ -63,7 +63,7 @@ void handle_quit_signal(int signum)
 void handle_child_signal()
 {
 	union wait status;
-    while (wait3(&status, WNOHANG, 0) > 0) {} 
+	while (wait3(&status, WNOHANG, 0) > 0) {} 
 }
 
 int main(int argc, char** argv)
@@ -144,6 +144,12 @@ int main(int argc, char** argv)
 
 	argument_free(argument);
 	free(configdir);
+
+	if (access(configfile, R_OK) != 0)
+	{
+		printf("error: could not open config file: %s\n", configfile);
+		exit(1);
+	}
 
 	fd = inotify_init();
 	if (fd < 0)
