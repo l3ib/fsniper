@@ -23,6 +23,7 @@ void argument_register(struct argument * argument, char * key,
 	list->description = strdup(description);
 	list->has_value = has_value;
 	list->value = NULL;
+	list->specified = 0;
 
 	if (argument->list) {
 		/* append 'list' to end of existing list */
