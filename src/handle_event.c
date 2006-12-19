@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/inotify.h>
 #include "keyvalcfg.h"
 #include "watchnode.h"
@@ -16,9 +17,9 @@
 
 extern struct keyval_section *config;
 extern struct watchnode *node;
-extern unsigned char *verbose;
+extern int verbose;
 
-void handle_event(struct inotify_event* event)
+void handle_event(struct inotify_event* event, int writefd)
 {
 	char abort;
 	char foundslash;
@@ -26,10 +27,10 @@ void handle_event(struct inotify_event* event)
 	char *handlerexec;
 	const char *mimetype;
 	magic_t magic;
-	int i, j;
+	int i, j, sysret;
 	struct keyval_section *child;
 	struct keyval_pair *handler;
-	
+
 /* find the node that corresponds to the event's descriptor */
 	for (; node; node = node->next)
 	{
@@ -107,6 +108,9 @@ void handle_event(struct inotify_event* event)
 		exit(-1);
 	}
 
+	/* dup the fd */
+	dup2(writefd, fileno(stdout));
+
 /* find the handlers which correspond to the mimetype, and continue executing them
    until we've run them all or one returns 0 */	
 	for (handler = child->keyvals; handler; handler = child->keyvals->next)
@@ -119,9 +123,12 @@ void handle_event(struct inotify_event* event)
 		strcat(handlerexec, " \"");
 		strcat(handlerexec, filename);
 		strcat(handlerexec, "\"");
-
-		printf("executing: %s\n", handlerexec);
-		if (system(handlerexec) == 0)
+		
+		write(writefd, "Executing: ", 11);
+		write(writefd, handlerexec, strlen(handlerexec));
+		write(writefd, "\n", 1);
+		sysret = system(handlerexec);
+		if (sysret == 0)
 		{
 			free(handlerexec);
 			break;
@@ -132,6 +139,9 @@ void handle_event(struct inotify_event* event)
 
 	free(filename);
 	magic_close(magic);
+
+	/* close down our pipe */
+	close(writefd);
 
 	exit(0);
 }

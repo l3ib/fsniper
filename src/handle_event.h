@@ -1,1 +1,1 @@
-void handle_event(struct inotify_event* event);
+void handle_event(struct inotify_event* event, int writefd);

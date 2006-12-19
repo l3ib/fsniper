@@ -8,6 +8,7 @@
 #include <wordexp.h>
 #include "keyvalcfg.h"
 #include "watchnode.h"
+#include "log.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -19,15 +20,15 @@
 
 extern struct keyval_section *config;
 extern struct watchnode *node;
-extern unsigned char *verbose;
+extern int verbose;
 
 /* recursively add watches */
 void recurse_add(int fd, char *directory)
 {
-  struct stat dir_stat;
-  struct dirent *entry;
+	struct stat dir_stat;
+	struct dirent *entry;
 	char* path;
-  DIR* dir = opendir(directory);
+	DIR* dir = opendir(directory);
 
 	if (dir == NULL)
 	{
@@ -46,7 +47,7 @@ void recurse_add(int fd, char *directory)
 		}
 		if (S_ISDIR(dir_stat.st_mode))
 		{
-			if (verbose) printf("adding watch for: %s\n", path);
+			if (verbose) log_write("Watching directory: %s\n", path);
 			node->wd = inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO);
 			node->path = strdup(path);
 			node->next = malloc(sizeof(struct watchnode));
@@ -74,7 +75,7 @@ struct watchnode* add_watches(int fd)
 	{
 		wordexp(child->name, &wexp, 0);
 		directory = strdup(wexp.we_wordv[0]);
-		if (verbose) printf("adding watch for: %s\n", directory);
+		if (verbose) log_write("Watching directory: %s\n", directory);
 		node->wd = inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO);
 		node->path = strdup(wexp.we_wordv[0]);
 		node->section = child;

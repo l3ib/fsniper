@@ -9,11 +9,14 @@
 #include <wait.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 #include "keyvalcfg.h"
 #include "argparser.h"
 #include "watchnode.h"
 #include "add_watches.h"
 #include "handle_event.h"
+#include "util.h"
+#include "log.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -22,6 +25,8 @@
 #ifdef USE_EFENCE
 #include <efence.h>
 #endif
+
+extern int errno;
 
 /* size of the event structure, not counting name */
 #define EVENT_SIZE  (sizeof (struct inotify_event))
@@ -35,14 +40,25 @@ struct keyval_section *config = NULL;
 struct watchnode *node = NULL;
 
 /* used for verbose printfs throughout sniper */
-unsigned char verbose = 0;  
+int verbose = 0;  
+
+
+/* structure for maintaining pipes */
+struct pipe_list
+{
+	int pfd[2];
+	struct pipe_list* next;
+};
+
+struct pipe_list* pipe_list_head = NULL;
+
 
 /* handler for any quit signal.  cleans up memory and exits gracefully. */
 void handle_quit_signal(int signum) 
 {
 	struct watchnode *cur, *prev;
 
-	if (verbose) printf("received signal %d. exiting.\n", signum);
+	if (verbose) log_write("Received signal %d, exiting.\n", signum);
 
 	/* free config here */ 
 	keyval_section_free_all(config);
@@ -56,6 +72,17 @@ void handle_quit_signal(int signum)
 		cur = cur->next;
 		free(prev);
 	}
+
+	/* shut down log */
+	/*log_close();*/
+
+	/* free / close any remaining pipes in the list */
+	free(pipe_list_head);
+
+	/* return an error if there was one */
+	if (signum < 0)
+		exit(signum);
+
 	exit(0); 
 } 
 
@@ -66,69 +93,82 @@ void handle_child_signal()
 	while (wait3(&status, WNOHANG, 0) > 0) {} 
 }
 
+/* deletes an element from the linked list and returns a pointer to the
+ * next element. */
+struct pipe_list * pipe_list_remove(struct pipe_list * head,
+	struct pipe_list * element) {
+
+	struct pipe_list * next = element->next;
+	struct pipe_list * prev;
+
+	/* find the previous element (the one before 'element') */
+	for (prev = head; prev->next != element; prev = prev->next);
+
+	free(element);
+	
+	return (prev->next = next);
+}
+
 int main(int argc, char** argv)
 {
-	int fd, len, i = 0;
+	int ifd, len, i = 0, selectret = 0, maxfd, forkret, retryselect;
 	char buf[BUF_LEN]; 
 	char *configdir;
 	char *configfile;
 	char *home;
 	char *error_str;
 	char *version_str = "sniper SVN";
+	char *pbuf;
 	DIR *dir;
+	fd_set set;
 	struct inotify_event *event;
 	struct argument *argument = argument_new();
+	struct pipe_list *pipe_list_cur;
+	struct pipe_list *pipe_list_tmp;
+
+	/* alloc pipe list */
+	pipe_list_head = malloc(sizeof(struct pipe_list));
+	pipe_list_head->next = NULL;
 
 	/* set up signals for exiting/reaping */ 
 	signal(SIGINT, &handle_quit_signal); 
 	signal(SIGTERM, &handle_quit_signal);
 	signal(SIGCHLD, &handle_child_signal);
 
+
 	/* add command line arguments */
 	argument_register(argument, "help", "Prints this help text.", 0);
 	argument_register(argument, "version", "Prints version information.", 0);
 	argument_register(argument, "daemon", "Run as a daemon.", 0);
+	argument_register(argument, "verbose", "Turns on debug text.", 0);
 
-  if ((error_str = argument_parse(argument, argc, argv))) {
-    printf("Error: %s", error_str);
-    free(error_str);
-    return 1;
-  }
+	if ((error_str = argument_parse(argument, argc, argv))) {
+		fprintf(stderr, "Error in arguments: %s", error_str);
+		free(error_str);
+		return -1;
+	}
 
-  if (argument_exists(argument, "help")) {
-    char *help_txt = argument_get_help_text(argument);
-    printf("%s", help_txt);
-    free(help_txt);
+	if (argument_exists(argument, "help")) {
+		char *help_txt = argument_get_help_text(argument);
+		printf("%s", help_txt);
+		free(help_txt);
 		return 0;
-  }
+	}
 
-  if (argument_exists(argument, "version")) {
-    printf("%s\n", version_str);
+	if (argument_exists(argument, "version")) {
+		printf("%s\n", version_str);
 		return 0;
-  }
+	}
+
+	if (argument_exists(argument, "verbose")) {
+		verbose = 1;
+	}
 
 	if (argument_exists(argument, "daemon") && fork())
 		return 0;
 
-	/* check for ~/.config/sniper/ and create it if needed */
-	home = getenv("HOME");
-	if (!home)
-	{
-		printf("error: no HOME environment variable set\n");
-		exit(1);
-	}
-
-	configdir = malloc(strlen(home) + strlen("/.config") + strlen("/sniper") + 1);
-
-	sprintf(configdir, "%s/.config", home);
-	if ( (dir = opendir(configdir)) == NULL)
-		mkdir(configdir, S_IRWXU | S_IRWXG | S_IRWXO);
-	closedir(dir);
-
-	sprintf(configdir, "%s/.config/sniper", home);
-	if ( (dir = opendir(configdir)) == NULL)
-		mkdir(configdir, S_IRWXU | S_IRWXG | S_IRWXO);
-	closedir(dir);
+	/* get config dir (must free this) */
+	configdir = get_config_dir();	
 
 	/* if a config file has not been specified, use default */
 	if (argument_get_extra(argument))
@@ -147,33 +187,122 @@ int main(int argc, char** argv)
 
 	if (access(configfile, R_OK) != 0)
 	{
-		printf("error: could not open config file: %s\n", configfile);
-		exit(1);
+		fprintf(stderr, "error: could not open config file: %s\n", configfile);
+		return -1;
 	}
 
-	fd = inotify_init();
-	if (fd < 0)
-		perror("inotify_init");
+	/* start up log */
+	if (!log_open())
+	{
+		fprintf(stderr, "Error: could not start log.\n");
+		return -1;
+	}
 
-	if (verbose) printf("parsing config file: %s\n", configfile);
+	ifd = inotify_init();
+	if (ifd < 0)
+	{
+		perror("inotify_init");
+		return -1;
+	}
+
+	if (verbose) log_write("Parsing config file: %s\n", configfile);
 	config = keyval_parse(configfile);
 	free(configfile);
 
-	node = add_watches(fd);
-	/* wait for inotify events and then handle them */
+	/* add nodes to the inotify descriptor */
+	node = add_watches(ifd);
+
+	/* wait for events and then handle them */
 	while (1)
-	{
-		len = read(fd, buf, BUF_LEN);
-		while (i < len)
+	{		
+		/* set up fds and max */
+		FD_ZERO(&set);
+		FD_SET(ifd, &set);
+		maxfd = ifd;
+		for (pipe_list_cur = pipe_list_head->next; pipe_list_cur; pipe_list_cur = pipe_list_cur->next)
 		{
-			event = (struct inotify_event *) &buf[i];
-			if (event->len)
-				if (fork() == 0) {
-					handle_event(event);
-					return 0;
-				}
-			i += EVENT_SIZE + event->len;
+			FD_SET(pipe_list_cur->pfd[0], &set);
+			if (pipe_list_cur->pfd[0] > maxfd)
+				maxfd = pipe_list_cur->pfd[0];
 		}
-		i = 0;
+
+		retryselect = 1;
+		while (retryselect)
+		{
+			/* use select to get activity on any of the fds */
+			selectret = select(maxfd + 1, &set, NULL, NULL, NULL);
+
+			if (selectret == -1)
+			{
+				if (errno == EINTR)
+					retryselect = 1;
+				else
+					handle_quit_signal(-2);
+			} else
+				retryselect = 0;
+		}
+
+		/* handle any events on the inotify fd */
+		if (FD_ISSET(ifd, &set))
+		{
+			len = read(ifd, buf, BUF_LEN);
+			while (i < len)
+			{
+				event = (struct inotify_event *) &buf[i];
+				if (event->len)
+				{
+					/* create new pipe_list entry */
+					for (pipe_list_cur = pipe_list_head; pipe_list_cur->next != NULL; pipe_list_cur = pipe_list_cur->next) {}
+
+					pipe_list_cur->next = malloc(sizeof(struct pipe_list));
+					pipe_list_cur->next->next = NULL;
+
+					/* create pipe */
+					pipe(pipe_list_cur->next->pfd);
+
+					if (fork() == 0) 
+					{
+						/* child, close 0 */
+						close(pipe_list_cur->next->pfd[0]);					
+						log_close();
+						handle_event(event, pipe_list_cur->next->pfd[1]);
+					} else {
+						/* parent, close 1 */
+						close(pipe_list_cur->next->pfd[1]);
+					}
+				}
+				i += EVENT_SIZE + event->len;
+			}
+			i = 0;
+		}
+
+		/* now lets see if we have any pipe activity */
+		pipe_list_cur = pipe_list_head->next;
+		while (pipe_list_cur)
+		{
+			if (FD_ISSET(pipe_list_cur->pfd[0], &set))
+			{
+				len = read(pipe_list_cur->pfd[0], buf, BUF_LEN);
+				if (len == 0)
+				{
+					close(pipe_list_cur->pfd[0]);
+					/* remove this item from the list */
+					pipe_list_cur = pipe_list_remove(pipe_list_head, pipe_list_cur);
+					
+				} else {
+					/* print it somewhere */
+					pbuf = malloc(len + 1);
+					snprintf(pbuf, len, "%s", buf);
+					log_write("%s\n", pbuf);
+					free(pbuf);
+					pipe_list_cur = pipe_list_cur->next;
+				}
+			} else {
+				pipe_list_cur = pipe_list_cur->next;
+
+			}
+
+
+		}
 	}
 }
