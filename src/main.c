@@ -93,6 +93,13 @@ void handle_child_signal()
 	while (wait3(&status, WNOHANG, 0) > 0) {} 
 }
 
+/* handler for any child process receiving a quit signal. */
+void handle_child_quit_signal(int signum)
+{
+	printf("exiting from a child\n");
+	exit(0);
+}
+
 /* deletes an element from the linked list and returns a pointer to the
  * next element. */
 struct pipe_list * pipe_list_remove(struct pipe_list * head,
@@ -265,6 +272,8 @@ int main(int argc, char** argv)
 						/* child, close 0 */
 						close(pipe_list_cur->next->pfd[0]);					
 						log_close();
+						signal(SIGINT, &handle_child_quit_signal);
+						signal(SIGTERM, &handle_child_quit_signal);
 						handle_event(event, pipe_list_cur->next->pfd[1]);
 					} else {
 						/* parent, close 1 */
