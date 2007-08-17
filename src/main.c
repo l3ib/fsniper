@@ -60,6 +60,9 @@ void handle_quit_signal(int signum)
 
 	if (verbose) log_write("Received signal %d, exiting.\n", signum);
 
+	/* kill anything in our process group, including all handler childs */
+	killpg(getpid(), SIGTERM);
+
 	/* free config here */ 
 	keyval_section_free_all(config);
 
@@ -96,7 +99,6 @@ void handle_child_signal()
 /* handler for any child process receiving a quit signal. */
 void handle_child_quit_signal(int signum)
 {
-	printf("exiting from a child\n");
 	exit(0);
 }
 
