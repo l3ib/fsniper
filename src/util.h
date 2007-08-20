@@ -3,4 +3,6 @@
 
 char* get_config_dir();
 
+#define DELAY_RET_CODE 2
+
 #endif

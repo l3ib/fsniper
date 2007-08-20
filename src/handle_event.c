@@ -6,6 +6,7 @@
 #include <sys/inotify.h>
 #include "keyvalcfg.h"
 #include "watchnode.h"
+#include "util.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -27,7 +28,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	char *handlerexec;
 	const char *mimetype;
 	magic_t magic;
-	int i, j, sysret;
+	int i, j, sysret, attempts;
 	struct keyval_section *child;
 	struct keyval_pair *handler;
 
@@ -113,7 +114,13 @@ void handle_event(struct inotify_event* event, int writefd)
 
 /* find the handlers which correspond to the mimetype, and continue executing them
    until we've run them all or one returns 0 */	
-	for (handler = child->keyvals; handler; handler = child->keyvals->next)
+	handler = child->keyvals;
+
+	/* delay attempts are limited! */
+	attempts = 0;
+
+	/* TODO: configify or constify attempts */
+	while (handler && attempts < 5)
 	{
 		if (strcmp(handler->key, "handler") != 0)
 			break;
@@ -127,15 +134,36 @@ void handle_event(struct inotify_event* event, int writefd)
 		write(writefd, "Executing: ", 11);
 		write(writefd, handlerexec, strlen(handlerexec));
 		write(writefd, "\n", 1);
-		sysret = system(handlerexec);
+		sysret = WEXITSTATUS(system(handlerexec));		
+
+		free(handlerexec);
+
+		/* do somethng based on return code! */
+
 		if (sysret == 0)
 		{
-			free(handlerexec);
+			/* the handler handled it!  break out of the handler loop and exit this thread */
 			break;
 		}
+		else if (sysret == DELAY_RET_CODE)
+		{
+			/* go to sleep for a while */
+			/* TODO: get config value for this delay time */
+			attempts++;
+			write(writefd, "Handler indicated delay, sleeping...", 37); 
+			sleep(5 * 60);
+			write(writefd, "Handler process resuming.", 26);
+		} 
 		else
-			free(handlerexec);
+		{
+			/* some other return code, means try the next handler */
+			handler = handler->next;
+		}
 	}
+
+	/* TODO: constify/configify this again */
+	if (attempts == 5)
+		write(writefd, "Handler gave up on retries.", 28); 
 
 	free(filename);
 	magic_close(magic);

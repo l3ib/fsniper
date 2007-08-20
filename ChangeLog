@@ -1,3 +1,8 @@
+Mon Aug 20 14:48:04 EDT 2007	Dave Foster <daf@minuslab.net>
+	* Added a delay return code for handlers.  Returning 2 from
+	  a handler will automatically delay a handler for 5 minutes,
+	  at a max of 5 times.  We need to let users configure this.
+
 Fri Aug 17 11:24:28 EDT 2007	Dave Foster <daf@minuslab.net>
 	* Added better process cleanup support.
 	* Preparing for handlers to implement a delay return code.
