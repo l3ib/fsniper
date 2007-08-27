@@ -77,7 +77,7 @@ void handle_quit_signal(int signum)
 	}
 
 	/* shut down log */
-	/*log_close();*/
+	log_close();
 
 	/* free / close any remaining pipes in the list */
 	free(pipe_list_head);

@@ -7,6 +7,14 @@
 #include <unistd.h>
 #include "util.h"
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef USE_EFENCE
+#include <efence.h>
+#endif
+
 /* you must free this return value */
 char* get_config_dir()
 {

@@ -23,7 +23,9 @@ extern int verbose;
 void handle_event(struct inotify_event* event, int writefd)
 {
 	char abort;
+	char isextension;
 	char foundslash;
+	char *extension;
 	char *filename;
 	char *handlerexec;
 	const char *mimetype;
@@ -61,12 +63,47 @@ void handle_event(struct inotify_event* event, int writefd)
 
 /* parse the mimetype to see if it matches the mimetype in the config. */
 	abort = 0;
+
 	for (child = node->section->children; child; child = child->next)
 	{
 		abort = 0;
 		foundslash = 0;
+		isextension = 1;
 
-		for (i=0, j=0; mimetype[i] && child->name[j] && abort == 0; i++, j++)
+		for (i=0; child->name[i]; i++)
+		{
+			if (child->name[i] == '/')
+				isextension = 0;
+		}
+
+		if (isextension == 1)
+		{
+			for (i=strlen(filename)-1; filename[i]; i--)
+			{
+				if (filename[i] == '.')
+					extension = strdup(filename + i);
+			}										 
+			
+			if (strlen(extension) != strlen(child->name))
+				abort = 1;
+
+			for (i=0, j=0; abort == 0 && filename[i] && child->name[j]; i++, j++)
+			{
+				if (extension[i] != child->name[j])
+				{
+					abort = 1;
+					break;
+				}
+			}
+
+			free(extension);
+
+			if (abort == 0)
+				break;
+		}
+		
+		/* parse the mimetype to see if it matches the one in the config */
+		for (i=0, j=0; isextension == 0 && mimetype[i] && child->name[j] && abort == 0; i++, j++)
 		{
 			if (!mimetype[i])
 			{
@@ -101,7 +138,7 @@ void handle_event(struct inotify_event* event, int writefd)
 		if (abort == 0)
 			break;
 	}
-
+	
 	if (abort == 1)
 	{
 		free(filename);
@@ -170,6 +207,5 @@ void handle_event(struct inotify_event* event, int writefd)
 
 	/* close down our pipe */
 	close(writefd);
-
 	exit(0);
 }

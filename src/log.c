@@ -6,6 +6,14 @@
 #include "log.h"
 #include "util.h"
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef USE_EFENCE
+#include <efence.h>
+#endif
+
 FILE *_logfd;
 
 int log_open()
@@ -18,6 +26,9 @@ int log_open()
 	free(configdir);	
 
 	_logfd = fopen(logfile, "w");
+	log_write("Log opened\n");
+
+	free(logfile);
 
 	if (_logfd)
 		log_write("Log opened\n");
