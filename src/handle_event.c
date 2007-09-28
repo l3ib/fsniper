@@ -1,10 +1,11 @@
-#include <pcre.h>
-#include <magic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/inotify.h>
+#include <fnmatch.h>
+#include <pcre.h>
+#include <magic.h>
 #include "keyvalcfg.h"
 #include "watchnode.h"
 #include "util.h"
@@ -24,9 +25,8 @@ extern int verbose;
 void handle_event(struct inotify_event* event, int writefd)
 {
 	char abort;
-	char isextension;
+	char isglob;
 	char foundslash;
-	char *extension;
 	char *filename;
 	char *handlerexec;
 	const char *mimetype;
@@ -35,6 +35,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	struct keyval_section *child;
 	struct keyval_pair *handler;
 	pcre *regex;
+	char *regex_str;
 	const char *pcre_err;
 	int pcre_erroffset;
 	int pcre_match;
@@ -66,38 +67,50 @@ void handle_event(struct inotify_event* event, int writefd)
 	if (mimetype == NULL)
 		perror("magic_file");
 
-/* parse the mimetype to see if it matches the mimetype in the config. */
+/* match the config's expression against a glob, regex, or mimetype */
 	abort = 0;
 
 	for (child = node->section->children; child; child = child->next)
 	{
 		abort = 0;
 		foundslash = 0;
-		isextension = 1;
-
+		isglob = 1;
 		for (i=0; child->name[i]; i++)
 		{
 			if (child->name[i] == '/')
-				isextension = 0;
+			{
+				isglob = 0;
+				break;
+			}
 		}
 
-		if (isextension == 1)
+		if (isglob == 1)
 		{
-			regex = pcre_compile(child->name, 0, &pcre_err, &pcre_erroffset, NULL);
+			if (fnmatch(child->name, filename, 0) != 0)
+				abort = 1;
+
+			if (abort == 0)
+				break;
+		}
+
+		/* regexs are in the format /regex/ */
+		if (isglob == 0 && child->name[0] == '/' && child->name[strlen(child->name)-1] == '/')
+		{
+			/* child->name is "/regex/", we want "regex" */
+			regex_str = strndup(child->name+1, strlen(child->name)-2);
+			regex = pcre_compile(regex_str, 0, &pcre_err, &pcre_erroffset, NULL);
 			pcre_match = pcre_exec(regex, NULL, filename, strlen(filename), 0, 0, NULL, 0);
+			free(regex_str);
 
 			if (pcre_match < 0)
 				abort = 1;
-
-			printf("re: %s, f: %s, rc: %d\n", child->name, filename, pcre_match);
-			free(extension);
 
 			if (abort == 0)
 				break;
 		}
 		
 		/* parse the mimetype to see if it matches the one in the config */
-		for (i=0, j=0; isextension == 0 && mimetype[i] && child->name[j] && abort == 0; i++, j++)
+		for (i=0, j=0; isglob == 0 && mimetype[i] && child->name[j] && abort == 0; i++, j++)
 		{
 			if (!mimetype[i])
 			{
