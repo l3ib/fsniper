@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT([sniper], [svn], [andrew@andrewyates.net])
+AC_INIT([sniper], [git], [andrew@andrewyates.net])
 AM_MAINTAINER_MODE
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -12,6 +12,7 @@ AC_PROG_CC
 AC_PROG_INSTALL
 
 AC_CHECK_LIB(magic, magic_open, [], AC_MSG_ERROR([libmagic not found]))
+AC_CHECK_LIB(pcre, pcre_version, [], AC_MSG_ERROR([libpcre not found]))
 
 AC_ARG_ENABLE([debug],
 AC_HELP_STRING([--enable-debug],[build a debug version [[default=no]]]),

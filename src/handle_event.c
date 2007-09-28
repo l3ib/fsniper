@@ -1,3 +1,4 @@
+#include <pcre.h>
 #include <magic.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,10 @@ void handle_event(struct inotify_event* event, int writefd)
 	int i, j, sysret, attempts;
 	struct keyval_section *child;
 	struct keyval_pair *handler;
+	pcre *regex;
+	const char *pcre_err;
+	int pcre_erroffset;
+	int pcre_match;
 
 /* find the node that corresponds to the event's descriptor */
 	for (; node; node = node->next)
@@ -78,24 +83,13 @@ void handle_event(struct inotify_event* event, int writefd)
 
 		if (isextension == 1)
 		{
-			for (i=strlen(filename)-1; filename[i]; i--)
-			{
-				if (filename[i] == '.')
-					extension = strdup(filename + i);
-			}										 
-			
-			if (strlen(extension) != strlen(child->name))
+			regex = pcre_compile(child->name, 0, &pcre_err, &pcre_erroffset, NULL);
+			pcre_match = pcre_exec(regex, NULL, filename, strlen(filename), 0, 0, NULL, 0);
+
+			if (pcre_match < 0)
 				abort = 1;
 
-			for (i=0, j=0; abort == 0 && filename[i] && child->name[j]; i++, j++)
-			{
-				if (extension[i] != child->name[j])
-				{
-					abort = 1;
-					break;
-				}
-			}
-
+			printf("re: %s, f: %s, rc: %d\n", child->name, filename, pcre_match);
 			free(extension);
 
 			if (abort == 0)
