@@ -28,6 +28,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	char isglob;
 	char foundslash;
 	char *filename;
+	char *handlersubstr;
 	char *handlerexec;
 	const char *mimetype;
 	magic_t magic;
@@ -169,11 +170,23 @@ void handle_event(struct inotify_event* event, int writefd)
 		if (strcmp(handler->key, "handler") != 0)
 			break;
 
-		handlerexec = malloc(strlen(handler->value) + strlen(filename) + strlen(" \"") + strlen("\"") + 1);
-		strcpy(handlerexec, handler->value);
+		handlersubstr = strstr(handler->value, "%%");
+		/* is no %% an error or should we pass the filename at the end if there's no %%? */
+		if (handlersubstr == NULL)
+		{
+			free(filename);
+			magic_close(magic);
+			close(writefd);
+			exit(1);
+		}
+
+		handlerexec = malloc(strlen(handler->value) - strlen("%%") + strlen(filename)
+												 + strlen(" \"") + strlen("\"") + 1);
+		strncpy(handlerexec, handler->value, handlersubstr - handler->value);
 		strcat(handlerexec, " \"");
 		strcat(handlerexec, filename);
 		strcat(handlerexec, "\"");
+		strcat(handlerexec, handler->value + (handlersubstr - handler->value) + strlen("%%"));
 		
 		write(writefd, "Executing: ", 11);
 		write(writefd, handlerexec, strlen(handlerexec));
@@ -181,6 +194,7 @@ void handle_event(struct inotify_event* event, int writefd)
 		sysret = WEXITSTATUS(system(handlerexec));		
 
 		free(handlerexec);
+
 
 		/* do somethng based on return code! */
 
