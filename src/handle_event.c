@@ -30,6 +30,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	char *filename;
 	char *handlersubstr;
 	char *handlerexec;
+	char *temp;
 	const char *mimetype;
 	magic_t magic;
 	int i, j, sysret, attempts;
@@ -40,6 +41,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	const char *pcre_err;
 	int pcre_erroffset;
 	int pcre_match;
+	int tempcount = 0;
 
 /* find the node that corresponds to the event's descriptor */
 	for (; node; node = node->next)
@@ -181,12 +183,19 @@ void handle_event(struct inotify_event* event, int writefd)
 		}
 
 		handlerexec = malloc(strlen(handler->value) - strlen("%%") + strlen(filename)
-												 + strlen(" \"") + strlen("\"") + 1);
-		strncpy(handlerexec, handler->value, handlersubstr - handler->value);
-		strcat(handlerexec, " \"");
+												 + strlen("\"") + strlen("\"") + 1);
+	        /* copy handler->value up to location of %% */
+		for (temp=handler->value; temp != handlersubstr; temp++)
+			handlerexec[tempcount++] = *temp;
+
+		/* must null here for strcats to work properly */
+		handlerexec[tempcount] = '\0';
+
+		/* cat on the rest of the stuff, quoted filename and post %% */
+		strcat(handlerexec, "\"");
 		strcat(handlerexec, filename);
 		strcat(handlerexec, "\"");
-		strcat(handlerexec, handler->value + (handlersubstr - handler->value) + strlen("%%"));
+		strcat(handlerexec, handlersubstr + strlen("%%"));
 		
 		write(writefd, "Executing: ", 11);
 		write(writefd, handlerexec, strlen(handlerexec));
@@ -194,7 +203,6 @@ void handle_event(struct inotify_event* event, int writefd)
 		sysret = WEXITSTATUS(system(handlerexec));		
 
 		free(handlerexec);
-
 
 		/* do somethng based on return code! */
 
