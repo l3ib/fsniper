@@ -159,8 +159,9 @@ void handle_event(struct inotify_event* event, int writefd)
 		exit(-1);
 	}
 
-	/* dup the fd */
+	/* dup the fds */
 	dup2(writefd, fileno(stdout));
+	dup2(writefd, fileno(stderr));
 
 /* find the handlers which correspond to the mimetype, and continue executing them
    until we've run them all or one returns 0 */	
