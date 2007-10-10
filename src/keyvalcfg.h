@@ -50,7 +50,7 @@ struct keyval_section {
 	char * name;
 	struct keyval_pair * keyvals; /* the key->value pairs in this section. */
 
-	/* children sections */
+	/* child sections */
 	struct keyval_section * children;
 };
 

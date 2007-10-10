@@ -253,8 +253,8 @@ static struct keyval_section * keyval_parse_section(char * _data,
 			/* skip any whitespace leading up to the value. */
 			data = skip_leading_whitespace(data);
 
-			/* read until a ';' is encountered. */
-			for (count = 0; data[count] && (data[count] != ';'); count++);
+			/* read until a newline character is encountered. */
+			for (count = 0; data[count] && (data[count] != '\n'); count++);
 
 			/* count contains the length of the value including trailing
 			 * whitespace. */
@@ -287,6 +287,7 @@ struct keyval_section * keyval_parse(const char * filename) {
 	char buf[PICESIZE];
 	FILE * file = fopen(filename, "r");
 	char * data = malloc(PICESIZE);
+
 	struct keyval_section * section;
 
 	data[0] = '\0';
