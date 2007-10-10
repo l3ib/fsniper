@@ -31,6 +31,9 @@ void handle_event(struct inotify_event* event, int writefd)
 	char *handlersubstr;
 	char *handlerexec;
 	char *temp;
+	char *newpathenv;
+	char *configdir;
+	char *scriptdir;
 	const char *mimetype;
 	magic_t magic;
 	int i, j, sysret, attempts;
@@ -166,6 +169,19 @@ void handle_event(struct inotify_event* event, int writefd)
 	/* delay attempts are limited! */
 	attempts = 0;
 
+	/* modify PATH */
+	configdir = get_config_dir();
+	scriptdir = malloc(strlen(configdir) + strlen("/scripts") + 1 + 1);
+	sprintf(scriptdir, ":%s/scripts:", configdir);
+	free(configdir);
+
+	newpathenv = malloc(strlen(getenv("PATH")) + strlen(scriptdir) + 1);
+	strcpy(newpathenv, getenv("PATH"));
+	strcat(newpathenv, scriptdir);
+	
+	setenv("PATH", newpathenv, 1);
+	free(newpathenv);
+
 	/* TODO: configify or constify attempts */
 	while (handler && attempts < 5)
 	{
@@ -184,7 +200,7 @@ void handle_event(struct inotify_event* event, int writefd)
 
 		handlerexec = malloc(strlen(handler->value) - strlen("%%") + strlen(filename)
 												 + strlen("\"") + strlen("\"") + 1);
-	        /* copy handler->value up to location of %% */
+			/* copy handler->value up to location of %% */
 		for (temp=handler->value; temp != handlersubstr; temp++)
 			handlerexec[tempcount++] = *temp;
 
