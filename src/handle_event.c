@@ -22,6 +22,9 @@ extern struct keyval_section *config;
 extern struct watchnode *node;
 extern int verbose;
 
+static int get_delay_time(struct keyval_pair* kv);
+static int get_delay_repeats(struct keyval_pair* kv);
+
 void handle_event(struct inotify_event* event, int writefd)
 {
 	char abort;
@@ -45,6 +48,8 @@ void handle_event(struct inotify_event* event, int writefd)
 	int pcre_erroffset;
 	int pcre_match;
 	int tempcount = 0;
+	int delay_repeats;
+	int delay_time;
 
 /* find the node that corresponds to the event's descriptor */
 	for (; node; node = node->next)
@@ -61,7 +66,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	strcpy(filename, node->path);
 	strcat(filename, "/");
 	strcat(filename, event->name);
-	
+
 /* does perror work here? should we also call exit()? */
 	if ( (magic = magic_open(MAGIC_MIME)) == NULL)
 		perror("magic_open");
@@ -151,7 +156,7 @@ void handle_event(struct inotify_event* event, int writefd)
 		if (abort == 0)
 			break;
 	}
-	
+
 	if (abort == 1)
 	{
 		free(filename);
@@ -183,11 +188,18 @@ void handle_event(struct inotify_event* event, int writefd)
 	setenv("PATH", newpathenv, 1);
 	free(newpathenv);
 
-	/* TODO: configify or constify attempts */
-	while (handler && attempts < 5)
+	/* get delay info */
+	delay_repeats = get_delay_repeats(child->keyvals);
+	delay_time = get_delay_time(child->keyvals);
+	
+	while (handler && (attempts < delay_repeats || delay_repeats == 0))
 	{
+		/* if not a handler, skip it */
 		if (strcmp(handler->key, "handler") != 0)
-			break;
+		{
+			handler = handler->next;
+			continue;
+		}
 
 		handlersubstr = strstr(handler->value, "%%");
 		/* is no %% an error or should we pass the filename at the end if there's no %%? */
@@ -202,6 +214,7 @@ void handle_event(struct inotify_event* event, int writefd)
 		handlerexec = malloc(strlen(handler->value) - strlen("%%") + strlen(filename)
 												 + strlen("\"") + strlen("\"") + 1);
 			/* copy handler->value up to location of %% */
+		tempcount = 0;
 		for (temp=handler->value; temp != handlersubstr; temp++)
 			handlerexec[tempcount++] = *temp;
 
@@ -213,10 +226,11 @@ void handle_event(struct inotify_event* event, int writefd)
 		strcat(handlerexec, filename);
 		strcat(handlerexec, "\"");
 		strcat(handlerexec, handlersubstr + strlen("%%"));
-		
+
 		write(writefd, "Executing: ", 11);
 		write(writefd, handlerexec, strlen(handlerexec));
 		write(writefd, "\n", 1);
+
 		sysret = WEXITSTATUS(system(handlerexec));		
 
 		free(handlerexec);
@@ -231,10 +245,9 @@ void handle_event(struct inotify_event* event, int writefd)
 		else if (sysret == DELAY_RET_CODE)
 		{
 			/* go to sleep for a while */
-			/* TODO: get config value for this delay time */
 			attempts++;
 			write(writefd, "Handler indicated delay, sleeping...", 37); 
-			sleep(5 * 60);
+			sleep(delay_time);
 			write(writefd, "Handler process resuming.", 26);
 		} 
 		else
@@ -244,8 +257,7 @@ void handle_event(struct inotify_event* event, int writefd)
 		}
 	}
 
-	/* TODO: constify/configify this again */
-	if (attempts == 5)
+	if (delay_repeats != 0 && attempts >= delay_repeats)
 		write(writefd, "Handler gave up on retries.", 28); 
 
 	free(filename);
@@ -255,3 +267,55 @@ void handle_event(struct inotify_event* event, int writefd)
 	close(writefd);
 	exit(0);
 }
+
+/**
+ * Get the delay time (in seconds) from the config file.
+ *
+ * The kv parameter should be the node->section parameter as it is being 
+ * handled inside of the handle_event function.
+ *
+ * This function checks the node->section to see if a delay_time keypair is
+ * set, if not, it tries the root of the config to see if that same keypair is
+ * set.  Failing that, it returns 300 (300 seconds, aka 5 minutes).
+ */
+static int get_delay_time(struct keyval_pair* kv)
+{
+	struct keyval_pair* val;
+
+	if (val = keyval_pair_find(kv, "delay_time"))
+		return keyval_pair_get_value_int(val);
+
+	if (val = keyval_pair_find(config->keyvals, "delay_time"))
+		return keyval_pair_get_value_int(val);
+
+	/* 5 minute default */
+	return 300; 
+}
+
+/**
+ * Get the number of repeats from the config file.
+ *
+ * The kv parameter should be the node->section parameter as it is being 
+ * handled inside of the handle_event function.
+ *
+ * This function checks the node->section to see if a delay_repeats keypair is
+ * set, if not, it tries the root of the config to see if that same keypair is
+ * set.  Failing that, it returns 0 (infinite).
+ *
+ * A value of 0 returned from this function means it should keep looping
+ * indefinetely.
+ */
+static int get_delay_repeats(struct keyval_pair* kv)
+{
+	struct keyval_pair* val;
+
+	if (val = keyval_pair_find(kv, "delay_repeats"))
+		return keyval_pair_get_value_int(val);
+
+	if (val = keyval_pair_find(config->keyvals, "delay_repeats"))
+		return keyval_pair_get_value_int(val);
+
+	return 0;
+}
+
+
