@@ -22,8 +22,11 @@ extern struct keyval_section *config;
 extern struct watchnode *node;
 extern int verbose;
 
+extern void free_all_globals();
+
 static int get_delay_time(struct keyval_pair* kv);
 static int get_delay_repeats(struct keyval_pair* kv);
+static char* build_exec_line(char* handler, char* filename);
 
 void handle_event(struct inotify_event* event, int writefd)
 {
@@ -161,6 +164,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	{
 		free(filename);
 		magic_close(magic);
+		free_all_globals();
 		exit(-1);
 	}
 
@@ -177,7 +181,7 @@ void handle_event(struct inotify_event* event, int writefd)
 
 	/* modify PATH */
 	configdir = get_config_dir();
-	scriptdir = malloc(strlen(configdir) + strlen("/scripts") + 1 + 1);
+	scriptdir = malloc(strlen(configdir) + strlen("/scripts") + 2 + 1);
 	sprintf(scriptdir, ":%s/scripts:", configdir);
 	free(configdir);
 
@@ -187,6 +191,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	
 	setenv("PATH", newpathenv, 1);
 	free(newpathenv);
+	free(scriptdir);
 
 	/* get delay info */
 	delay_repeats = get_delay_repeats(child->keyvals);
@@ -201,31 +206,8 @@ void handle_event(struct inotify_event* event, int writefd)
 			continue;
 		}
 
-		handlersubstr = strstr(handler->value, "%%");
-		/* is no %% an error or should we pass the filename at the end if there's no %%? */
-		if (handlersubstr == NULL)
-		{
-			free(filename);
-			magic_close(magic);
-			close(writefd);
-			exit(1);
-		}
-
-		handlerexec = malloc(strlen(handler->value) - strlen("%%") + strlen(filename)
-												 + strlen("\"") + strlen("\"") + 1);
-			/* copy handler->value up to location of %% */
-		tempcount = 0;
-		for (temp=handler->value; temp != handlersubstr; temp++)
-			handlerexec[tempcount++] = *temp;
-
-		/* must null here for strcats to work properly */
-		handlerexec[tempcount] = '\0';
-
-		/* cat on the rest of the stuff, quoted filename and post %% */
-		strcat(handlerexec, "\"");
-		strcat(handlerexec, filename);
-		strcat(handlerexec, "\"");
-		strcat(handlerexec, handlersubstr + strlen("%%"));
+		/* create executable statement (subs %%) */
+		handlerexec = build_exec_line(handler->value, filename);
 
 		write(writefd, "Executing: ", 11);
 		write(writefd, handlerexec, strlen(handlerexec));
@@ -265,6 +247,7 @@ void handle_event(struct inotify_event* event, int writefd)
 
 	/* close down our pipe */
 	close(writefd);
+	free_all_globals();
 	exit(0);
 }
 
@@ -318,4 +301,59 @@ static int get_delay_repeats(struct keyval_pair* kv)
 	return 0;
 }
 
+/**
+ * Builds the line to execute by the handler.
+ *
+ * Takes the handler from the config file and the filename, and mates them
+ * together, placing the filename where appropriate.
+ *
+ * It will replace any instance of %% with the filename.  If no %% exists in
+ * the handler parameter, it will add the filename to the end of the handler
+ * with a space.  The filename will always be surrounded by double quotes.
+ *
+ * This returns a newly allocated string that the caller is expected to 
+ * free.
+ */
+static char* build_exec_line(char* handler, char* filename)
+{
+	char* sanefilename;
+	char* handlerline;
+	char* postpercent = NULL;
+	char* temp;
+	char* percentloc = NULL;
+	int didreplace = 0;
+	int templen = 0;
+	int i;
+	int percentoffset;
+
+	/* build filename with quotes */
+	sanefilename = malloc(strlen(filename) + 3);
+	sprintf(sanefilename, "\"%s\"", filename);
+
+	handlerline = strdup(handler); 
+
+	/* now replace all %% that occur */
+	while (percentloc = strstr(handlerline, "%%"))
+	{
+		percentoffset = percentloc - handlerline;
+		didreplace = 1;
+		postpercent = strdup(percentloc+2);
+		handlerline = realloc(handlerline, strlen(handlerline) - 2 + strlen(sanefilename) + 1);
+		strncpy(handlerline+percentoffset, sanefilename, strlen(sanefilename));
+		strncat(handlerline, postpercent, strlen(postpercent));
+		free(postpercent);
+	}
+
+	/* if no replacements, we must tack it on the end */
+	if (!didreplace)
+	{
+		handlerline = realloc(handlerline, strlen(handlerline) + 1 + strlen(sanefilename) + 1);
+		strcat(handlerline, " ");
+		strcat(handlerline, sanefilename);
+	}
+
+	free(sanefilename);
+
+	return handlerline;
+}
 

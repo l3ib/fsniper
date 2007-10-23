@@ -51,17 +51,25 @@ struct pipe_list
 };
 
 struct pipe_list* pipe_list_head = NULL;
+struct pipe_list * pipe_list_remove(struct pipe_list * head,
+	struct pipe_list * element);
 
-
-/* handler for any quit signal.  cleans up memory and exits gracefully. */
-void handle_quit_signal(int signum) 
+/* frees memory.  called from more than one place because fork'd copies
+ * still have globals hanging around before they are exited.
+ *
+ * frees:
+ * - config
+ * - watchnode elements
+ * - pipe list
+ *
+ * called from:
+ * - handle_quit_signal (in case of main exiting) 
+ * - exit_handler (in case of handler exiting)
+ */
+void free_all_globals()
 {
 	struct watchnode *cur, *prev;
-
-	if (verbose) log_write("Received signal %d, exiting.\n", signum);
-
-	/* kill anything in our process group, including all handler childs */
-	killpg(getpid(), SIGTERM);
+	struct pipe_list* tmp_pipe;
 
 	/* free config here */ 
 	keyval_section_free_all(config);
@@ -76,11 +84,27 @@ void handle_quit_signal(int signum)
 		free(prev);
 	}
 
+	/* free / close any remaining pipes in the list */    
+	tmp_pipe = pipe_list_head->next;
+	while(tmp_pipe)
+		tmp_pipe = pipe_list_remove(pipe_list_head, tmp_pipe);
+
+	free(pipe_list_head);
+}
+
+/* handler for any quit signal.  cleans up memory and exits gracefully. */
+void handle_quit_signal(int signum) 
+{
+	if (verbose) log_write("Received signal %d, exiting.\n", signum);
+
+	/* kill anything in our process group, including all handler childs */
+	killpg(getpid(), SIGTERM);
+	
+	/* free things */
+	free_all_globals();
+
 	/* shut down log */
 	log_close();
-
-	/* free / close any remaining pipes in the list */
-	free(pipe_list_head);
 
 	/* return an error if there was one */
 	if (signum < 0)
