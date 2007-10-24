@@ -75,13 +75,11 @@ void handle_event(struct inotify_event* event, int writefd)
 	if (!node)
 		return;
 
-/* combine the name inotify gives with the full path to the file */
+	/* combine the name inotify gives with the full path to the file */
 	filename = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + 1);
-	strcpy(filename, node->path);
-	strcat(filename, "/");
-	strcat(filename, event->name);
+	sprintf(filename, "%s/%s", node->path, event->name);
 
-/* does perror work here? should we also call exit()? */
+	/* does perror work here? should we also call exit()? */
 	if ( (magic = magic_open(MAGIC_MIME)) == NULL)
 		perror("magic_open");
 
@@ -92,7 +90,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	if (mimetype == NULL)
 		perror("magic_file");
 
-/* match the config's expression against a glob, regex, or mimetype */
+	/* match the config's expression against a glob, regex, or mimetype */
 	abort = 0;
 
 	for (child = node->section->children; child; child = child->next)

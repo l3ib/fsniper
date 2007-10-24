@@ -227,8 +227,7 @@ int main(int argc, char** argv)
 	else
 	{
 		configfile = malloc (strlen(configdir) + strlen ("/config") + 1);
-		strcpy(configfile, configdir);
-		strcat(configfile, "/config");
+		sprintf(configfile, "%s/config", configdir);
 	}
 
 	argument_free(argument);
