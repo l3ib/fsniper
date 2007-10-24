@@ -212,8 +212,8 @@ int main(int argc, char** argv)
 	if (argument_exists(argument, "sync"))
 		syncmode = 1;
 
-    if (argument_exists(argument, "log-to-stdout")) {
-        logtostdout = 1;
+	if (argument_exists(argument, "log-to-stdout")) {
+		logtostdout = 1;
 	}
 
 	/* get config dir (must free this) */

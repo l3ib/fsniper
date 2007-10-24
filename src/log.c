@@ -28,7 +28,6 @@ int log_open()
 	free(configdir);	
 
 	_logfd = fopen(logfile, "w");
-	log_write("Log opened\n");
 
 	free(logfile);
 
@@ -42,13 +41,17 @@ int log_write(char *str, ...)
 {
 	va_list va;
 	int len;
+	time_t t;
+	char readabletime[30];
+	t = time(NULL);
+	strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
 	
-	fprintf(_logfd, "%d ", time(NULL));
-    if (logtostdout) fprintf(stdout, "%d ", time(NULL));
+	fprintf(_logfd, "%s ", readabletime);
+	if (logtostdout) fprintf(stdout, "%s ", readabletime);
 
 	va_start(va, str);
 	len = vfprintf(_logfd, str, va);
-    if (logtostdout) len = vfprintf(stdout, str, va);
+	if (logtostdout) len = vfprintf(stdout, str, va);
 	va_end(va);
 
 	fflush(_logfd);
