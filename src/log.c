@@ -16,6 +16,8 @@
 
 FILE *_logfd;
 
+extern int logtostdout;
+
 int log_open()
 {
 	char *configdir, *logfile;
@@ -40,12 +42,13 @@ int log_write(char *str, ...)
 {
 	va_list va;
 	int len;
-
 	
 	fprintf(_logfd, "%d ", time(NULL));
+    if (logtostdout) fprintf(stdout, "%d ", time(NULL));
 
 	va_start(va, str);
 	len = vfprintf(_logfd, str, va);
+    if (logtostdout) len = vfprintf(stdout, str, va);
 	va_end(va);
 
 	fflush(_logfd);
