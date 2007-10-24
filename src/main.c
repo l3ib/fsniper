@@ -178,7 +178,7 @@ int main(int argc, char** argv)
 	argument_register(argument, "version", "Prints version information.", 0);
 	argument_register(argument, "daemon", "Run as a daemon.", 0);
 	argument_register(argument, "verbose", "Turns on debug text.", 0);
-    argument_register(argument, "sync", "Sync mode (for debugging).", 0);
+	argument_register(argument, "sync", "Sync mode (for debugging).", 0);
 
 	if ((error_str = argument_parse(argument, argc, argv))) {
 		fprintf(stderr, "Error in arguments: %s", error_str);
@@ -205,8 +205,8 @@ int main(int argc, char** argv)
 	if (argument_exists(argument, "daemon") && fork())
 		return 0;
 
-    if (argument_exists(argument, "sync"))
-        syncmode = 1;
+	if (argument_exists(argument, "sync"))
+		syncmode = 1;
 
 	/* get config dir (must free this) */
 	configdir = get_config_dir();	
@@ -292,35 +292,35 @@ int main(int argc, char** argv)
 				event = (struct inotify_event *) &buf[i];
 				if (event->len)
 				{
-                    /* if sync mode, just call handle_exec */
-                    if (syncmode == 1)
-                    {
-                        handle_event(event, fileno(_logfd));
-                    }
-                    else
-                    {
-                        /* create new pipe_list entry */
-                        for (pipe_list_cur = pipe_list_head; pipe_list_cur->next != NULL; pipe_list_cur = pipe_list_cur->next) {}
+					/* if sync mode, just call handle_exec */
+					if (syncmode == 1)
+					{
+						handle_event(event, fileno(_logfd));
+					}
+					else
+					{
+						/* create new pipe_list entry */
+						for (pipe_list_cur = pipe_list_head; pipe_list_cur->next != NULL; pipe_list_cur = pipe_list_cur->next) {}
 
-                        pipe_list_cur->next = malloc(sizeof(struct pipe_list));
-                        pipe_list_cur->next->next = NULL;
+						pipe_list_cur->next = malloc(sizeof(struct pipe_list));
+						pipe_list_cur->next->next = NULL;
 
-                        /* create pipe */
-                        pipe(pipe_list_cur->next->pfd);
+						/* create pipe */
+						pipe(pipe_list_cur->next->pfd);
 
-                        if (fork() == 0) 
-                        {
-                            /* child, close 0 */
-                            close(pipe_list_cur->next->pfd[0]);					
-                            log_close();
-                            signal(SIGINT, &handle_child_quit_signal);
-                            signal(SIGTERM, &handle_child_quit_signal);
-                            handle_event(event, pipe_list_cur->next->pfd[1]);
-                        } else {
-                            /* parent, close 1 */
-                            close(pipe_list_cur->next->pfd[1]);
-                        }
-                    }
+						if (fork() == 0) 
+						{
+							/* child, close 0 */
+							close(pipe_list_cur->next->pfd[0]);					
+							log_close();
+							signal(SIGINT, &handle_child_quit_signal);
+							signal(SIGTERM, &handle_child_quit_signal);
+							handle_event(event, pipe_list_cur->next->pfd[1]);
+						} else {
+							/* parent, close 1 */
+							close(pipe_list_cur->next->pfd[1]);
+						}
+					}
 				}
 				i += EVENT_SIZE + event->len;
 			}

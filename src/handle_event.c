@@ -33,11 +33,11 @@ static char* build_exec_line(char* handler, char* filename);
  * whether it needs to simply return (in sync mode) or do
  * cleanup and exit a child process. */
 #define EXIT_HANDLER(status) \
-    if (syncmode) return; \
-    else \
-        close(writefd); \
-        free_all_globals(); \
-        exit(status);
+	if (syncmode) return; \
+	else \
+		close(writefd); \
+		free_all_globals(); \
+		exit(status);
 
 void handle_event(struct inotify_event* event, int writefd)
 {
@@ -255,7 +255,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	free(filename);
 	magic_close(magic);
 
-    EXIT_HANDLER(0);
+	EXIT_HANDLER(0);
 }
 
 /**
