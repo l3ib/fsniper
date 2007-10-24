@@ -28,6 +28,8 @@
 
 extern int errno;
 
+extern FILE* _logfd;
+
 /* size of the event structure, not counting name */
 #define EVENT_SIZE  (sizeof (struct inotify_event))
 /* reasonable guess as to size of 1024 events */
@@ -42,6 +44,8 @@ struct watchnode *node = NULL;
 /* used for verbose printfs throughout sniper */
 int verbose = 0;  
 
+/* synchronous mode, no forking for handlers */
+int syncmode = 0;
 
 /* structure for maintaining pipes */
 struct pipe_list
@@ -145,7 +149,6 @@ struct pipe_list * pipe_list_remove(struct pipe_list * head,
 int main(int argc, char** argv)
 {
 	int ifd, len, i = 0, selectret = 0, maxfd, forkret, retryselect;
-    int syncmode = 0;
 	char buf[BUF_LEN]; 
 	char *configdir;
 	char *configfile;
@@ -201,6 +204,9 @@ int main(int argc, char** argv)
 
 	if (argument_exists(argument, "daemon") && fork())
 		return 0;
+
+    if (argument_exists(argument, "sync"))
+        syncmode = 1;
 
 	/* get config dir (must free this) */
 	configdir = get_config_dir();	
@@ -289,7 +295,7 @@ int main(int argc, char** argv)
                     /* if sync mode, just call handle_exec */
                     if (syncmode == 1)
                     {
-                        handle_event(event, fileno(stdout));
+                        handle_event(event, fileno(_logfd));
                     }
                     else
                     {

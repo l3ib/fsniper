@@ -21,12 +21,23 @@
 extern struct keyval_section *config;
 extern struct watchnode *node;
 extern int verbose;
+extern int syncmode;
 
 extern void free_all_globals();
 
 static int get_delay_time(struct keyval_pair* kv);
 static int get_delay_repeats(struct keyval_pair* kv);
 static char* build_exec_line(char* handler, char* filename);
+
+/* exits the handle_event function, conditional based on
+ * whether it needs to simply return (in sync mode) or do
+ * cleanup and exit a child process. */
+#define EXIT_HANDLER(status) \
+    if (syncmode) return; \
+    else \
+        close(writefd); \
+        free_all_globals(); \
+        exit(status);
 
 void handle_event(struct inotify_event* event, int writefd)
 {
@@ -164,8 +175,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	{
 		free(filename);
 		magic_close(magic);
-		free_all_globals();
-		exit(-1);
+		EXIT_HANDLER(-1);
 	}
 
 	/* dup the fds */
@@ -245,10 +255,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	free(filename);
 	magic_close(magic);
 
-	/* close down our pipe */
-	close(writefd);
-	free_all_globals();
-	exit(0);
+    EXIT_HANDLER(0);
 }
 
 /**
