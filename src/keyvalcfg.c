@@ -183,6 +183,29 @@ static void strip_comments(char * string) {
 	}
 }
 
+/* collapses multi-line statements into one line. the '\' character is used to
+ * indicate that a statement continues onto the next line. */
+static void collapse(char * string) {
+	for (; *string; string++) {
+		if (*string == '\\') {
+			/* the dreaded \ has been encountered. first change this character into
+			 * a space. then change the end-of-line character into a space if there
+			 * is no 'data' between this \ and the end of the line. */
+			*string = ' ';
+			
+			for (; *string; string++) {
+				if (*string == '\n') {
+					*string = ' ';
+				} else if (*string != '\t' && *string != ' ') {
+					/* we have found a non-space character between the \ and the
+					 * end-of-line. abort mission. */
+					 break;
+				}
+			}
+		}
+	}
+}
+
 /* the parser. probably full of bugs. ph34r. */
 static struct keyval_section * keyval_parse_section(char * _data,
 	size_t * bytes_read) {
@@ -196,6 +219,9 @@ static struct keyval_section * keyval_parse_section(char * _data,
 
 	/* get rid of comments in the data */
 	strip_comments(data);
+	
+	/* collapse multi-line statements into single lines */
+	collapse(data);
 
 	while (*data) {
 		size_t count = 0;
