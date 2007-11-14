@@ -330,6 +330,7 @@ static char* build_exec_line(char* handler, char* filename)
 	int templen = 0;
 	int i;
 	int percentoffset;
+	int reallocsize;
 
 	/* build filename with quotes */
 	sanefilename = malloc(strlen(filename) + 3);
@@ -343,8 +344,13 @@ static char* build_exec_line(char* handler, char* filename)
 		percentoffset = percentloc - handlerline;
 		didreplace = 1;
 		postpercent = strdup(percentloc+2);
-		handlerline = realloc(handlerline, strlen(handlerline) - 2 + strlen(sanefilename) + 1);
-		strncpy(handlerline+percentoffset, sanefilename, strlen(sanefilename));
+
+		/* size is length of original string minus size of %% plus size of file plus \0 */
+		reallocsize = strlen(handlerline) - 2 + strlen(sanefilename) + 1;
+		handlerline = realloc(handlerline, reallocsize);
+
+		/* make sure we get the whole filename including the \0 */
+		strncpy(handlerline+percentoffset, sanefilename, strlen(sanefilename) + 1);
 		strncat(handlerline, postpercent, strlen(postpercent));
 		free(postpercent);
 	}
