@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+#include <pwd.h>
 #include "keyvalcfg.h"
 #include "argparser.h"
 #include "watchnode.h"
@@ -156,11 +157,14 @@ int main(int argc, char** argv)
 	char *configdir;
 	char *configfile;
 	char *home;
+	char *pidfilename;
 	char *error_str;
 	char *version_str = "sniper SVN";
 	char *pbuf;
+	FILE *pidfile;
 	DIR *dir;
 	fd_set set;
+	struct passwd *uid;
 	struct inotify_event *event;
 	struct argument *argument = argument_new();
 	struct pipe_list *pipe_list_cur;
@@ -256,6 +260,15 @@ int main(int argc, char** argv)
 	if (verbose) log_write("Parsing config file: %s\n", configfile);
 	config = keyval_parse(configfile);
 	free(configfile);
+
+	/* create a pid file */
+	uid = getpwuid(getuid());
+	pidfilename = malloc(strlen("/tmp/sniper-") + strlen(uid->pw_name) + strlen(".pid") + 1);
+	sprintf(pidfilename, "/tmp/sniper-%s.pid", uid->pw_name);
+	pidfile = fopen(pidfilename, "w");
+	fprintf(pidfile, "%d", getpid());
+	fclose(pidfile);
+	free(pidfilename);
 
 	/* add nodes to the inotify descriptor */
 	node = add_watches(ifd);
