@@ -9,6 +9,12 @@ struct test_case {
 	char * output;
 };
 
+struct test_case_sanitize {
+	char * input;
+	size_t n;
+	char * output;
+};
+
 void strip_comments(char * string);
 unsigned char test_strip_comments(void) {
 	size_t i;
@@ -104,11 +110,119 @@ unsigned char test_strip_multiple_spaces(void) {
 	return 1;
 }
 
+char * skip_leading_whitespace(char * string);
+unsigned char test_skip_leading_whitespace(void) {
+	size_t i;
+	struct test_case cases[] = {
+		{"\thello", "hello"},
+		{" hello", "hello"},
+		{"\nhello", "hello"},
+		{"  hello", "hello"},
+		{"\n\t     \t\n hello", "hello"}
+	};
+
+	printf("skip_leading_whitespace\n");
+
+	for (i = 0; i < (sizeof(cases) / sizeof(cases[0])); i++) {
+		char * input = strdup(cases[i].input);
+		char * output;
+		
+		printf("\ttest case %d: ", i);
+		
+		output = skip_leading_whitespace(input);
+		
+		if (strcmp(output, cases[i].output) == 0) {
+			printf("pass\n");
+		} else {
+			printf("fail\n");
+			printf("\t\texpected: \"%s\"\n\t\tgot: \"%s\"\n", cases[i].output, output);
+		}
+		
+		/* we don't free output since skip_leading_whitespace doesn't allocate any
+		 * new memory */
+		free(input);
+	}
+
+	return 1;
+}
+
+size_t skip_trailing_whitespace(char * string);
+unsigned char test_skip_trailing_whitespace(void) {
+	size_t i;
+	struct test_case cases[] = {
+		{"hello\t", "hello"},
+		{"hello" , "hello"},
+		{"hello\n", "hello"},
+		{"hello  ", "hello"},
+		{"   hello\n\t     \t\n ", "   hello"}
+	};
+
+	printf("skip_trailing_whitespace\n");
+
+	for (i = 0; i < (sizeof(cases) / sizeof(cases[0])); i++) {
+		size_t output;
+		
+		printf("\ttest case %d: ", i);
+		
+		output = skip_trailing_whitespace(cases[i].input);
+		
+		if (strlen(cases[i].output) == output) {
+			printf("pass\n");
+		} else {
+			printf("fail\n");
+			printf("\t\texpected: \"%d\"\n\t\tgot: \"%d\"\n",
+				strlen(cases[i].output), output);
+		}
+	}
+
+	return 1;
+}
+
+char * sanitize_str(char * string, size_t n);
+unsigned char test_sanitize_str(void) {
+	size_t i;
+	struct test_case_sanitize cases[] = {
+		{"hello\t", 6, "hello"},
+		{"hello" , 5, "hello"},
+		{"hello\n", 6, "hello"},
+		{"hello  ", 6, "hello"},
+		{"   hello\n\t     \t\n ", 12, "   hello"},
+		{"some craziness       occurred", 21, "some craziness"}
+	};
+
+	printf("sanitize_str\n");
+
+	for (i = 0; i < (sizeof(cases) / sizeof(cases[0])); i++) {
+		char * output;
+		
+		printf("\ttest case %d: ", i);
+		
+		output = sanitize_str(cases[i].input, cases[i].n);
+		
+		if (strcmp(output, cases[i].output) == 0) {
+			printf("pass\n");
+		} else {
+			printf("fail\n");
+			printf("\t\texpected: \"%s\"\n\t\tgot: \"%s\"\n", cases[i].output, output);
+		}
+
+		free(output);
+	}
+
+	return 1;
+}
+
 int main(void) {
 	test_strip_comments();
 	putchar('\n');
 	test_collapse();
 	putchar('\n');
 	test_strip_multiple_spaces();
+	putchar('\n');
+	test_skip_leading_whitespace();
+	putchar('\n');
+	test_skip_trailing_whitespace();
+	putchar('\n');
+	test_sanitize_str();
 	return 0;
 }

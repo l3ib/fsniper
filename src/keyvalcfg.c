@@ -77,7 +77,7 @@ unsigned char keyval_write(struct keyval_section * section,
 }
 #endif
 /* returns 'data' + some offset (skips leading whitespace) */
-static char * skip_leading_whitespace(char * data) {
+char * skip_leading_whitespace(char * data) {
 	while (*data && IS_SPACE(*data)) {
 		data++;
 	}
@@ -87,17 +87,17 @@ static char * skip_leading_whitespace(char * data) {
 
 /* returns the length of 'string' if trailing whitespace was to be
  * removed. */
-static size_t skip_trailing_whitespace(char * string) {
+size_t skip_trailing_whitespace(char * string) {
 	size_t len = strlen(string) - 1;
 
-	while (IS_SPACE(string[len--]));
+	while (IS_SPACE(string[len])) len--;
 
 	return len + 1;
 }
 
 /* returns a null-terminated string containing the first n characters of
  * 'source', with trailing whitespace removed. */
-static char * sanitize_str(char * source, size_t n) {
+char * sanitize_str(char * source, size_t n) {
 	char * ret = malloc(n + 1);
 	size_t len;
 
