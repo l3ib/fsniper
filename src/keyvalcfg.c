@@ -29,6 +29,7 @@
 #define IS_SPACE(c) (((c) == ' ') || ((c) == '\t') || ((c) == '\n'))
 #define IS_END_KEY(c) (((c) == '{') || ((c) == '='))
 
+#if 0
 /* writes 'section' and all its children to 'file' */
 static void keyval_section_write(struct keyval_section * section,
 	unsigned recursion, FILE * file) {
@@ -74,7 +75,7 @@ unsigned char keyval_write(struct keyval_section * section,
 
 	return 1;
 }
-
+#endif
 /* returns 'data' + some offset (skips leading whitespace) */
 static char * skip_leading_whitespace(char * data) {
 	while (*data && IS_SPACE(*data)) {
@@ -137,7 +138,7 @@ static char * sanitize_str(char * source, size_t n) {
 }*/
 
 /* removes # comments from 'string' and replaces them with whitespace. */
-static void strip_comments(char * string) {
+void strip_comments(char * string) {
 	for (; *string; string++) {
 		if (*string == '#') {
 			/* we've found a comment. it should last until the end of the line. */
@@ -150,17 +151,19 @@ static void strip_comments(char * string) {
 
 /* collapses multi-line statements into one line. the '\' character is used to
  * indicate that a statement continues onto the next line. */
-static void collapse(char * string) {
+void collapse(char * string) {
 	for (; *string; string++) {
 		if (*string == '\\') {
 			/* the dreaded \ has been encountered. first change this character into
 			 * a space. then change the end-of-line character into a space if there
 			 * is no 'data' between this \ and the end of the line. */
-			*string = ' ';
+			char * pos = string++;
 			
 			for (; *string; string++) {
 				if (*string == '\n') {
 					*string = ' ';
+					/* also change the \ into a space */
+					*pos = ' ';
 				} else if (*string != '\t' && *string != ' ') {
 					/* we have found a non-space character between the \ and the
 					 * end-of-line. abort mission. */
@@ -173,23 +176,26 @@ static void collapse(char * string) {
 
 /* transforms sequences of more than one space into a single space. returns a
  * new string which must be freed. */
-static void strip_multiple_spaces(char * string) {
+char * strip_multiple_spaces(char * string) {
 	size_t len = 0;
 	char * result = malloc(sizeof(char) * (strlen(string) + 1));
 	unsigned char seen_space = 0;
+	char space_char = 0;
 
-	while (*string) {
+	for (;;) {
 		if (IS_SPACE(*string)) {
-			seen_space = 1;
+			seen_space++;
+			space_char = *string;
 		} else {
 			if (seen_space) {
-				result[len++] = ' ';
+				result[len++] = (seen_space == 1) ? space_char : ' ';
 				seen_space = 0;
 			}
 
 			result[len++] = *string;
 		}
 
+		if (*string == '\0') break;
 		string++;
 	}
 
@@ -212,11 +218,13 @@ static struct keyval_node * keyval_parse_node(char * data) {
 		while (!IS_END_KEY(data[count++]));
 		
 		/* count now contains the length of the key + trailing whitespace */
-		node->key = sanitize_str(data, count);
+		node->name = sanitize_str(data, count);
 	}
+	
+	return node;
 }
 
-struct keyval_section * keyval_parse(const char * filename) {
+struct keyval_node * keyval_parse(const char * filename) {
 	char buf[PICESIZE];
 	FILE * file = fopen(filename, "r");
 	char * data = malloc(PICESIZE);
@@ -232,12 +240,12 @@ struct keyval_section * keyval_parse(const char * filename) {
 	}
 	fclose(file);
 
-	node = keyval_parse_node(data, NULL);
+	node = keyval_parse_node(data);
 	free(data);
 
-	return section;
+	return node;
 }
-
+#if 0
 /* the convenience functions for getting values and shizer. */
 unsigned char keyval_pair_get_value_bool(struct keyval_pair * pair) {
 	switch (*pair->value) {
@@ -263,3 +271,4 @@ int keyval_pair_get_value_int(struct keyval_pair * pair) {
 double keyval_pair_get_value_double(struct keyval_pair * pair) {
 	return strtod(pair->value, NULL);
 }
+#endif
