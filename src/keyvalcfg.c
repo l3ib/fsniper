@@ -26,42 +26,8 @@
 
 #define DEBUG 0
 
-static struct linked_list * llist_find_end(struct linked_list * list) {
-	while (list->next) list = list->next;
-	return list;
-}
-
-void llist_append(struct linked_list * first, struct linked_list * item) {
-	item->first = first;
-	first = llist_find_end(first);
-	first->next = item;
-	item->next = NULL;
-}
-
-void keyval_pair_free(struct keyval_pair * keyval) {
-	free(keyval->key);
-	free(keyval->value);
-	free(keyval);
-}
-
-void keyval_pair_free_all(struct keyval_pair * keyval) {
-	while (keyval) {
-		struct keyval_pair * next = keyval->next;
-		keyval_pair_free(keyval);
-		keyval = next;
-	}
-}
-
-void keyval_section_free_all(struct keyval_section * first) {
-	while (first) {
-		struct keyval_section * next = first->next;
-		if (first->name) free(first->name);
-		if (first->keyvals) keyval_pair_free_all(first->keyvals);
-		if (first->children) keyval_section_free_all(first->children);
-		free(first);
-		first = next;
-	}
-}
+#define IS_SPACE(c) (((c) == ' ') || ((c) == '\t') || ((c) == '\n'))
+#define IS_END_KEY(c) (((c) == '{') || ((c) == '='))
 
 /* writes 'section' and all its children to 'file' */
 static void keyval_section_write(struct keyval_section * section,
@@ -111,7 +77,7 @@ unsigned char keyval_write(struct keyval_section * section,
 
 /* returns 'data' + some offset (skips leading whitespace) */
 static char * skip_leading_whitespace(char * data) {
-	while (*data && ((*data == ' ') || (*data == '\t') || (*data == '\n'))) {
+	while (*data && IS_SPACE(*data)) {
 		data++;
 	}
 
@@ -123,8 +89,7 @@ static char * skip_leading_whitespace(char * data) {
 static size_t skip_trailing_whitespace(char * string) {
 	size_t len = strlen(string) - 1;
 
-	while ((string[len] == ' ') || (string[len] == '\t')
-		|| (string[len] == '\n')) len--;
+	while (IS_SPACE(string[len--]));
 
 	return len + 1;
 }
@@ -206,107 +171,49 @@ static void collapse(char * string) {
 	}
 }
 
+/* transforms sequences of more than one space into a single space. returns a
+ * new string which must be freed. */
+static void strip_multiple_spaces(char * string) {
+	size_t len = 0;
+	char * result = malloc(sizeof(char) * (strlen(string) + 1));
+	unsigned char seen_space = 0;
+
+	while (*string) {
+		if (IS_SPACE(*string)) {
+			seen_space = 1;
+		} else {
+			if (seen_space) {
+				result[len++] = ' ';
+				seen_space = 0;
+			}
+
+			result[len++] = *string;
+		}
+
+		string++;
+	}
+
+	result[len] = '\0';
+
+	return realloc(result, len + 1);
+}
+
 /* the parser. probably full of bugs. ph34r. */
-static struct keyval_section * keyval_parse_section(char * _data,
-	size_t * bytes_read) {
+static struct keyval_node * keyval_parse_node(char * data) {
+	struct keyval_node * node = malloc(sizeof(struct keyval_node));
 
-	char * data = _data;
-	struct keyval_section * section = malloc(sizeof(struct keyval_section));
-	section->children = section->next = NULL;
-	section->first = section;
-	section->keyvals = NULL;
-	section->name = NULL;
+	node->value = NULL;
+	node->children = node->prev = node->next = NULL;
 
-	/* get rid of comments in the data */
-	strip_comments(data);
-	
-	/* collapse multi-line statements into single lines */
-	collapse(data);
+	data = skip_leading_whitespace(data);
 
 	while (*data) {
 		size_t count = 0;
-		char * key;
-		char * value;
-
-		/* skip leading whitespace */
-		data = skip_leading_whitespace(data);
-
-		if (*data == '}') {
-			/* we're done parsing this section. */
-			data++;
-			break;
-		}
-
-		/* read up to '=' or '{', this is our key */
-		while (data[count] && ((data[count] != '=') && (data[count] != '{')))
-			count++;
-
-		if (!data[count]) {
-			if (bytes_read) *bytes_read += data - _data + count;
-			return section;
-		}
-
-		/* count now contains the length of the key including trailing
-		 * whitespace. store the key. */
-		key = sanitize_str(data, count);
-
-		data += count + 1;
-
-		if (data[-1] == '{') {
-			/* key was really a section name. parse it. */
-			struct keyval_section * child;
-			count = 0;
-
-			child = keyval_parse_section (data, &count);
-			data += count + 1;
-
-			child->name = key;
-			if (section->children) {
-				/* append to the existing list */
-				llist_append((struct linked_list*)section->children,
-					(struct linked_list*)child);
-			} else {
-				/* start a new list */
-				child->first = child;
-				child->next = NULL;
-				section->children = child;
-			}
-		} else {
-			struct keyval_pair * pair;
-
-			/* key has a value. store it. */
-
-			/* skip any whitespace leading up to the value. */
-			data = skip_leading_whitespace(data);
-
-			/* read until a newline character is encountered. */
-			for (count = 0; data[count] && (data[count] != '\n'); count++);
-
-			/* count contains the length of the value including trailing
-			 * whitespace. */
-			value = sanitize_str(data, count);
-			
-			data += count + 1;
-
-			/* throw key and value into a keyval pair */
-			pair = malloc(sizeof(struct keyval_pair));
-			pair->key = key;
-			pair->value = value;
-
-			/* append the pair to the current list of pairs if possible */
-			if (section->keyvals) {
-				llist_append((struct linked_list*)section->keyvals,
-					(struct linked_list*)pair);
-			} else {
-				pair->next = NULL;
-				pair->first = pair;
-				section->keyvals = pair;
-			}
-		}
+		while (!IS_END_KEY(data[count++]));
+		
+		/* count now contains the length of the key + trailing whitespace */
+		node->key = sanitize_str(data, count);
 	}
-
-	if (bytes_read) *bytes_read += data - _data;
-	return section;
 }
 
 struct keyval_section * keyval_parse(const char * filename) {
@@ -314,7 +221,7 @@ struct keyval_section * keyval_parse(const char * filename) {
 	FILE * file = fopen(filename, "r");
 	char * data = malloc(PICESIZE);
 
-	struct keyval_section * section;
+	struct keyval_node * node;
 
 	data[0] = '\0';
 	if (!file) return NULL;
@@ -325,30 +232,10 @@ struct keyval_section * keyval_parse(const char * filename) {
 	}
 	fclose(file);
 
-	section = keyval_parse_section(data, NULL);
+	node = keyval_parse_node(data, NULL);
 	free(data);
 
 	return section;
-}
-
-struct keyval_pair * keyval_pair_find(struct keyval_pair * first,
-	char * key) {
-
-	for (; first; first = first->next) {
-		if (strcmp(first->key, key) == 0) return first;
-	}
-
-	return NULL; /* no match */
-}
-
-struct keyval_section * keyval_section_find(struct keyval_section * first,
-	char * name) {
-
-	for (; first; first = first->next) {
-		if (strcmp(first->name, name) == 0) return first;
-	}
-
-	return NULL; /* no match */
 }
 
 /* the convenience functions for getting values and shizer. */
