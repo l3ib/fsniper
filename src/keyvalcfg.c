@@ -27,7 +27,8 @@
 #define DEBUG 0
 
 #define IS_SPACE(c) (((c) == ' ') || ((c) == '\t') || ((c) == '\n'))
-#define IS_END_KEY(c) (((c) == '{') || ((c) == '='))
+#define IS_END_KEY(c) (((c) == '\0') || ((c) == '{') || ((c) == '=') || ((c) == '}'))
+#define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n'))
 
 #if 0
 /* writes 'section' and all its children to 'file' */
@@ -76,6 +77,26 @@ unsigned char keyval_write(struct keyval_section * section,
 	return 1;
 }
 #endif
+
+void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
+	char * tabs = malloc(depth + 1);
+	size_t count = depth;
+	while (count--) strncat(tabs, "\t", 1);
+	
+	if (node->children) {
+		struct keyval_node * child = node->children;
+		fprintf(file, "%s%s {\n", tabs, node->name);
+
+		while (child) {
+			keyval_node_write(child, depth + 1, file);
+			child = child->next;
+		}
+		fprintf(file, "%s}\n", tabs);
+	} else {
+		fprintf(file, "%s%s = %s\n", tabs, node->name, node->value);
+	}
+}
+
 /* returns 'data' + some offset (skips leading whitespace) */
 char * skip_leading_whitespace(char * data) {
 	while (*data && IS_SPACE(*data)) {
@@ -204,30 +225,116 @@ char * strip_multiple_spaces(char * string) {
 	return realloc(result, len + 1);
 }
 
-/* the parser. probably full of bugs. ph34r. */
-static struct keyval_node * keyval_parse_node(char * data) {
-	struct keyval_node * node = malloc(sizeof(struct keyval_node));
+unsigned char is_end_key(char c) {
+	if (c == '\0') return 1;
+	if (c == '=') return 1;
+	if (c == '{') return 1;
+	
+	return 0;
+}
 
-	node->value = NULL;
-	node->children = node->prev = node->next = NULL;
+/* the parser. probably full of bugs. ph34r.
+ * stops if it encounters } or end of string. */
+struct keyval_node * keyval_parse_node(char ** _data, size_t indent) {
+	struct keyval_node * head = malloc(sizeof(struct keyval_node));
+	struct keyval_node * child = NULL; /* last child found */
 
-	data = skip_leading_whitespace(data);
+	char * data = *_data;
+
+	head->head = head;
+	head->name = head->value = NULL;
+	head->children = head->next = NULL;
+
+
 
 	while (*data) {
 		size_t count = 0;
-		while (!IS_END_KEY(data[count++]));
+		struct keyval_node * node;
+		char * name;
+
+		data = skip_leading_whitespace(data);
 		
-		/* count now contains the length of the key + trailing whitespace */
-		node->name = sanitize_str(data, count);
+		/* obscure bug lying in wait. i had it as data[count++] but the macro
+		 * expansion pwnt it. don't make the same mistake! */
+		while (1) {
+			if (IS_END_KEY(data[count])) {
+				break;
+			}
+			count++;
+		}
+
+		if (data[count] == '}') {
+			data += count + 1;
+			break;
+		}
+
+		/* count now contains the length of the key + trailing whitespace... with
+		 * some offset */
+		name = sanitize_str(data, count);
+		/* is this node just a key-value pair or is it a section? */
+		if (data[count] == '=') {
+			/* it's a key-value pair. */
+			data = skip_leading_whitespace(data + count + 1);
+
+			/* the value is all characters until some...*/
+
+			if ((*data == '\0') || (*data == '\n')) {
+				/* malformed... expected a value, got end of line */
+			}
+
+			count = 0;
+			/* how many characters occur until end of line? */
+			while (1) {
+				if (IS_END_VALUE(data[count])) {
+					/*printf("%c fails\n", data[count]);*/
+					break;
+				} else {
+					/*printf("%c passes\n", data[count]);*/
+				}
+				count++;
+			}
+
+			/* note that count is now the position of the newline + 1, so it is 1
+			 * more than the length of the value. */
+
+			node = malloc(sizeof(struct keyval_node));
+			node->value = sanitize_str(data, count);
+			node->next = NULL;
+
+			/* done! */
+			data += count;
+			if (*data && (*data != '}')) data++;
+
+		} else if (data[count] == '{') {
+			/* it's a section. */
+			char * d = data + count + 1;
+			node = keyval_parse_node(&d, indent + 1);
+			data = d;
+		} else {
+			/* stop. */
+			break;
+		}
+
+		node->name = name;
+
+		if (child) {
+			child->next = node;
+		} else {
+			head->children = node;
+		}
+
+		child = node;
 	}
-	
-	return node;
+
+	*_data = data;
+	return head;
 }
 
 struct keyval_node * keyval_parse(const char * filename) {
 	char buf[PICESIZE];
 	FILE * file = fopen(filename, "r");
 	char * data = malloc(PICESIZE);
+	char * data2 = data;
 
 	struct keyval_node * node;
 
@@ -240,7 +347,7 @@ struct keyval_node * keyval_parse(const char * filename) {
 	}
 	fclose(file);
 
-	node = keyval_parse_node(data);
+	node = keyval_parse_node(&data2, 0);
 	free(data);
 
 	return node;

@@ -1,3 +1,4 @@
+#include "keyvalcfg.h"
 #include "keyvalcfg_test.h"
 
 #include <stdio.h>
@@ -212,7 +213,14 @@ unsigned char test_sanitize_str(void) {
 	return 1;
 }
 
+struct keyval_node * keyval_parse_node(char ** data, size_t indents);
+void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file);
 int main(void) {
+	char * data = "lol { pice { x = 0\nno = u} } ham { burgled = true }";
+	struct keyval_node * node;
+	
+	/*data = "pice = l3ib";*/
+
 	test_strip_comments();
 	putchar('\n');
 	test_collapse();
@@ -224,5 +232,8 @@ int main(void) {
 	test_skip_trailing_whitespace();
 	putchar('\n');
 	test_sanitize_str();
+	
+	node = keyval_parse_node(&data, 0);
+	keyval_node_write(node, 0, stdout);
 	return 0;
 }

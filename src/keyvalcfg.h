@@ -32,7 +32,7 @@ struct keyval_node {
 	
 	/* self explanatory, can be null if appropriate */
 	struct keyval_node * children;
-	struct keyval_node * prev;
+	struct keyval_node * head;
 	struct keyval_node * next;
 };
 
