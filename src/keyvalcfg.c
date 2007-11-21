@@ -27,6 +27,7 @@
 #define IS_SPACE(c) (((c) == ' ') || ((c) == '\t') || ((c) == '\n'))
 #define IS_END_KEY(c) (((c) == '\0') || ((c) == '{') || ((c) == '=') || ((c) == '}') || ((c) == '#'))
 #define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n') || ((c) == '#'))
+#define IS_END_LIST(c) (((c) == '\0') || ((c) == ']') || ((c) == ','))
 
 void keyval_node_free_all(struct keyval_node * node) {
 	/* free will do nothing if these are null */
@@ -363,4 +364,55 @@ double keyval_node_get_value_double(struct keyval_node * node) {
 	return node->value ? strtod(node->value, NULL) : 0.0;
 }
 
+unsigned char keyval_node_has_list_value(struct keyval_node * node) {
+	if (!node->value) return 0;
+	
+	if (*node->value == '[') {
+		size_t len = strlen(node->value);
+		if (node->value[len - 1] == ']') return 1;
+	}
+	
+	return 0;
+}
 
+struct keyval_node * keyval_node_get_value_list(struct keyval_node * node) {
+	struct keyval_node * list = NULL;
+	struct keyval_node * last = list;
+
+	char * value;
+
+	if (!keyval_node_has_list_value(node)) return NULL;
+	
+	value = node->value + 1;
+
+	while (*value != ']') {
+		struct keyval_node * element;
+		size_t count = 0;
+
+		value = skip_leading_whitespace(value);
+		if (*value == ',') {
+			value++;
+			continue;
+		}
+
+		while (!IS_END_LIST(value[count])) count++;
+		
+		/* count now contains the length of this list element. */
+		element = malloc(sizeof(struct keyval_node));
+		element->value = sanitize_str(value, count);
+		
+		/* make sure element has all irrelevant fields set to null */
+		element->name = element->comment = NULL;
+		element->children = element->next = NULL;
+		
+		if (last) {
+			element->head = last;
+			last->next = element;
+		} else element->head = list = element;
+		last = element;
+		
+		value += count;
+	}
+	
+	return list;
+}
