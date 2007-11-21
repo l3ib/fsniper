@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #define PICESIZE 512
 
@@ -50,7 +51,9 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		while (--count) strncat(tabs, "\t", 1);
 	}
 	
-	if (keyval_node_has_list_value(node)) {
+	/*printf("(%d)", keyval_node_get_value_type(node));*/
+	
+	if (keyval_node_get_value_type(node) == KEYVAL_TYPE_LIST) {
 		/* yay, a list! */
 		struct keyval_node * child;
 		fprintf(file, "%s%s = [", tabs, node->name);
@@ -186,6 +189,49 @@ char * strip_multiple_spaces(char * string) {
 	return realloc(result, len + 1);
 }
 
+struct keyval_node * keyval_node_get_value_list(struct keyval_node * node) {
+	struct keyval_node * list = NULL;
+	struct keyval_node * last = list;
+
+	char * value;
+
+	if (keyval_node_get_value_type(node) != KEYVAL_TYPE_LIST) return NULL;
+	
+	value = node->value + 1;
+
+	while (*value != ']') {
+		struct keyval_node * element;
+		size_t count = 0;
+
+		value = skip_leading_whitespace(value);
+		if (*value == ',') {
+			value++;
+			continue;
+		}
+
+		while (!IS_END_LIST(value[count])) count++;
+		
+		/* count now contains the length of this list element. */
+		element = malloc(sizeof(struct keyval_node));
+		element->value = sanitize_str(value, count);
+		
+		/* make sure element has all irrelevant fields set to null */
+		element->name = element->comment = NULL;
+		element->children = element->next = NULL;
+		
+		if (last) {
+			element->head = last;
+			last->next = element;
+		} else element->head = list = element;
+		last = element;
+		
+		value += count;
+	}
+	
+	return list;
+}
+
+
 /* the parser. probably full of bugs. ph34r.
  * stops if it encounters } or end of string. */
 struct keyval_node * keyval_parse_node(char ** _data) {
@@ -255,7 +301,7 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 			node->value = count ? sanitize_str(data, count) : NULL;
 			node->next = node->children = NULL;
 
-			if (keyval_node_has_list_value(node)) {
+			if (keyval_node_get_value_type(node) == KEYVAL_TYPE_LIST) {
 				node->children = keyval_node_get_value_list(node);
 				free(node->value);
 				node->value = NULL;
@@ -409,44 +455,35 @@ unsigned char keyval_node_has_list_value(struct keyval_node * node) {
 	return 0;
 }
 
-struct keyval_node * keyval_node_get_value_list(struct keyval_node * node) {
-	struct keyval_node * list = NULL;
-	struct keyval_node * last = list;
-
-	char * value;
-
-	if (!keyval_node_has_list_value(node)) return NULL;
+enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node) {
+	enum keyval_value_type type = KEYVAL_TYPE_INT;
+	char * s;
 	
-	value = node->value + 1;
-
-	while (*value != ']') {
-		struct keyval_node * element;
-		size_t count = 0;
-
-		value = skip_leading_whitespace(value);
-		if (*value == ',') {
-			value++;
-			continue;
+	if (keyval_node_has_list_value(node)) return KEYVAL_TYPE_LIST;
+	if (!node->value) return KEYVAL_TYPE_NONE;
+	
+	if (strlen(node->value) == 1) {
+		switch (*node->value) {
+			case 't':
+			case 'T':
+			case 'y':
+			case 'Y':
+			case '1':
+				return KEYVAL_TYPE_BOOL;
+			default: break;
 		}
+	}
 
-		while (!IS_END_LIST(value[count])) count++;
-		
-		/* count now contains the length of this list element. */
-		element = malloc(sizeof(struct keyval_node));
-		element->value = sanitize_str(value, count);
-		
-		/* make sure element has all irrelevant fields set to null */
-		element->name = element->comment = NULL;
-		element->children = element->next = NULL;
-		
-		if (last) {
-			element->head = last;
-			last->next = element;
-		} else element->head = list = element;
-		last = element;
-		
-		value += count;
+	for (s = node->value; *s; s++) {
+		if (!isdigit(*s)) {
+			/* hmm, a non-digit. if it's a '.', we could still be a decimal number. */
+			if (*s == '.') {
+				/* two dots encountered */
+				if (type == KEYVAL_TYPE_DOUBLE) return KEYVAL_TYPE_STRING;
+				type = KEYVAL_TYPE_DOUBLE; /* first dot */
+			} else return KEYVAL_TYPE_STRING;
+		}
 	}
 	
-	return list;
+	return type;
 }

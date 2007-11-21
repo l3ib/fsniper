@@ -59,14 +59,17 @@ unsigned char keyval_write(struct keyval_node * head,
  * returns NULL on failure. note that this does not check children. */
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
 
-/* whether or not the given node contains a list-type value. */
-unsigned char keyval_node_has_list_value(struct keyval_node * node);
+enum keyval_value_type {
+	KEYVAL_TYPE_NONE,
+	KEYVAL_TYPE_BOOL,
+	KEYVAL_TYPE_STRING,
+	KEYVAL_TYPE_INT,
+	KEYVAL_TYPE_DOUBLE,
+	KEYVAL_TYPE_LIST
+};
 
-/* parses a list-type value. you probably won't want to use this yourself.
- * the parser automatically parses lists when encountered.
- * this function gives you a bunch of nodes with no children or comments
- * or keys. */
-struct keyval_node * keyval_node_get_value_list(struct keyval_node * node);
+/* determines the value type of a node. */
+enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node);
 
 /* convenience functions for getting values. figure it out. */
 unsigned char keyval_node_get_value_bool(struct keyval_node * node);
