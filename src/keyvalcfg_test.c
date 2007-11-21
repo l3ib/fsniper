@@ -234,5 +234,9 @@ int main(void) {
 	node = keyval_parse_file("test/keyval_test.cfg");
 	keyval_node_write(node, 0, stdout);
 	keyval_node_free_all(node);
+	
+	node = keyval_parse_string(data);
+	keyval_node_write(node, 0, stdout);
+	keyval_node_free_all(node);
 	return 0;
 }

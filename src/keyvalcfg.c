@@ -27,13 +27,14 @@
 #define DEBUG 0
 
 #define IS_SPACE(c) (((c) == ' ') || ((c) == '\t') || ((c) == '\n'))
-#define IS_END_KEY(c) (((c) == '\0') || ((c) == '{') || ((c) == '=') || ((c) == '}'))
-#define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n'))
+#define IS_END_KEY(c) (((c) == '\0') || ((c) == '{') || ((c) == '=') || ((c) == '}') || ((c) == '#'))
+#define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n') || ((c) == '#'))
 
 void keyval_node_free_all(struct keyval_node * node) {
 	/* free will do nothing if these are null */
 	free(node->name);
 	free(node->value);
+	free(node->comment);
 	
 	if (node->children) keyval_node_free_all(node->children);
 	if (node->next) keyval_node_free_all(node->next);
@@ -60,9 +61,13 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		}
 		if (node->name) fprintf(file, "%s}\n", tabs);
 	} else {
-		fprintf(file, "%s%s = %s\n", tabs, node->name, node->value);
+		if (node->name) {
+			fprintf(file, "%s%s = %s", tabs, node->name, node->value);
+			if (node->comment) fprintf(file, " # %s", node->comment);
+		} else if (node->comment) fprintf(file, "%s# %s\n", tabs, node->comment);
+		fputc('\n', file);
 	}
-	
+
 	if (depth) free(tabs);
 }
 
@@ -94,8 +99,12 @@ size_t skip_trailing_whitespace(char * string) {
 /* returns a null-terminated string containing the first n characters of
  * 'source', with trailing whitespace removed. */
 char * sanitize_str(char * source, size_t n) {
-	char * ret = malloc(n + 1);
+	char * ret;
 	size_t len;
+	
+	if (n == 0) return 0;
+	
+	ret = malloc(n + 1);
 
 	/* copy the first n chars of source into ret */
 	ret = strncpy(ret, source, n);
@@ -181,14 +190,6 @@ char * strip_multiple_spaces(char * string) {
 	return realloc(result, len + 1);
 }
 
-unsigned char is_end_key(char c) {
-	if (c == '\0') return 1;
-	if (c == '=') return 1;
-	if (c == '{') return 1;
-	
-	return 0;
-}
-
 /* the parser. probably full of bugs. ph34r.
  * stops if it encounters } or end of string. */
 struct keyval_node * keyval_parse_node(char ** _data) {
@@ -198,15 +199,14 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 	char * data = *_data;
 
 	head->head = head;
-	head->name = head->value = NULL;
+	head->name = head->value = head->comment = NULL;
 	head->children = head->next = NULL;
-
-
 
 	while (*data) {
 		size_t count = 0;
 		struct keyval_node * node;
-		char * name;
+		char * name = NULL;
+		char type_key, type_value = 0;
 
 		data = skip_leading_whitespace(data);
 		
@@ -218,17 +218,19 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 			}
 			count++;
 		}
+		
+		type_key = data[count];
 
-		if (data[count] == '}') {
+		if (type_key == '}') {
 			data += count + 1;
 			break;
 		}
 
 		/* count now contains the length of the key + trailing whitespace... with
 		 * some offset */
-		name = sanitize_str(data, count);
+		if (type_key != '#') name = sanitize_str(data, count);
 		/* is this node just a key-value pair or is it a section? */
-		if (data[count] == '=') {
+		if (type_key == '=' || type_key == '#') {
 			/* it's a key-value pair. */
 			data = skip_leading_whitespace(data + count + 1);
 
@@ -240,25 +242,38 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 
 			count = 0;
 			/* how many characters occur until end of line? */
-			while (1) {
+			if (type_key != '#') while (1) {
 				if (IS_END_VALUE(data[count])) {
 					/*printf("%c fails\n", data[count]);*/
-					break;
+					if (data[count - 1] != '\\') {
+						type_value = data[count];
+						break; /* stop unless literal */
+					}
 				} else {
 					/*printf("%c passes\n", data[count]);*/
 				}
 				count++;
 			}
 
-			/* note that count is now the position of the newline + 1, so it is 1
-			 * more than the length of the value. */
-
 			node = malloc(sizeof(struct keyval_node));
-			node->value = sanitize_str(data, count);
+			node->value = count ? sanitize_str(data, count) : NULL;
 			node->next = node->children = NULL;
 
-			/* done! */
 			data += count;
+
+			if (type_key == '#' || type_value == '#') {
+				data = skip_leading_whitespace(data + ((type_value == '#') ? 1 : 0));
+				count = 0;
+				/* there's a comment to be made here. */
+				while (1) {
+					if (data[count] == '\n') break;
+					count++;
+				}
+
+				node->comment = sanitize_str(data, count);
+				data += count;
+			} else node->comment = NULL;
+
 			if (*data && (*data != '}')) data++;
 
 		} else if (data[count] == '{') {
