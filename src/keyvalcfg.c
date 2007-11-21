@@ -24,8 +24,6 @@
 
 #define PICESIZE 512
 
-#define DEBUG 0
-
 #define IS_SPACE(c) (((c) == ' ') || ((c) == '\t') || ((c) == '\n'))
 #define IS_END_KEY(c) (((c) == '\0') || ((c) == '{') || ((c) == '=') || ((c) == '}') || ((c) == '#'))
 #define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n') || ((c) == '#'))
@@ -119,19 +117,6 @@ char * sanitize_str(char * source, size_t n) {
 	}
 
 	return ret;
-}
-
-/* removes # comments from 'string' and replaces them with whitespace. */
-void strip_comments(char * string) {
-	for (; *string; string++) {
-		if (*string == '#') {
-			/* we've found a comment. it should last until the end of the line. */
-			for (; *string != '\n'; string++) {
-				if (*string == '\0') return;
-				*string = ' ';
-			}
-		}
-	}
 }
 
 /* collapses multi-line statements into one line. the '\' character is used to
@@ -229,9 +214,9 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 		/* count now contains the length of the key + trailing whitespace... with
 		 * some offset */
 		if (type_key != '#') name = sanitize_str(data, count);
-		/* is this node just a key-value pair or is it a section? */
+		/* is this node just a key-value node or is it a section? */
 		if (type_key == '=' || type_key == '#') {
-			/* it's a key-value pair. */
+			/* it's a key-value node. */
 			data = skip_leading_whitespace(data + count + 1);
 
 			/* the value is all characters until some...*/
@@ -341,10 +326,20 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 
 	return node;
 }
-#if 0
-/* the convenience functions for getting values and shizer. */
-unsigned char keyval_pair_get_value_bool(struct keyval_pair * pair) {
-	switch (*pair->value) {
+
+struct keyval_node * keyval_node_find(struct keyval_node * head, char * name) {
+	for (; head; head = head->next) {
+		if (!head->name) continue;
+		if (!strcmp(head->name, name)) return head;
+	}
+	
+	return NULL;
+}
+
+unsigned char keyval_node_get_value_bool(struct keyval_node * node) {
+	if (!node->value) return 0;
+
+	switch (*node->value) {
 		case 't':
 		case 'T':
 		case 'y':
@@ -356,15 +351,16 @@ unsigned char keyval_pair_get_value_bool(struct keyval_pair * pair) {
 	}
 }
 
-char * keyval_pair_get_value_string(struct keyval_pair * pair) {
-	return strdup(pair->value);
+char * keyval_node_get_value_string(struct keyval_node * node) {
+	return node->value ? strdup(node->value) : NULL;
 }
 
-int keyval_pair_get_value_int(struct keyval_pair * pair) {
-	return atoi(pair->value);
+int keyval_node_get_value_int(struct keyval_node * node) {
+	return node->value ? atoi(node->value) : 0;
 }
 
-double keyval_pair_get_value_double(struct keyval_pair * pair) {
-	return strtod(pair->value, NULL);
+double keyval_node_get_value_double(struct keyval_node * node) {
+	return node->value ? strtod(node->value, NULL) : 0.0;
 }
-#endif
+
+

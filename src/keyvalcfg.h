@@ -44,17 +44,6 @@ struct keyval_node {
  * children. */
 void keyval_node_free_all(struct keyval_node * head);
 
-/* finds the keyval_node with key 'key' in a linked list. returns NULL on
- * failure. */
-struct keyval_node * keyval_pair_find(struct keyval_node * first,
-	char * key);
-
-/* convenience functions for getting values. figure it out. */
-unsigned char keyval_node_get_value_bool(struct keyval_node * node);
-char * keyval_pair_get_value_string(struct keyval_node * node);
-int keyval_pair_get_value_int(struct keyval_node * node);
-double keyval_pair_get_value_double(struct keyval_node * node);
-
 /* parses a config file, the infamous parser func */
 struct keyval_node * keyval_parse_file(const char * filename);
 
@@ -65,5 +54,15 @@ struct keyval_node * keyval_parse_string(const char * data);
  * failure. if filename is NULL, writes to stdout. */
 unsigned char keyval_write(struct keyval_node * head,
 	const char * filename);
+
+/* finds the first keyval_node with name 'name' in a linked list.
+ * returns NULL on failure. note that this does not check children. */
+struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
+
+/* convenience functions for getting values. figure it out. */
+unsigned char keyval_node_get_value_bool(struct keyval_node * node);
+char * keyval_pair_get_value_string(struct keyval_node * node);
+int keyval_pair_get_value_int(struct keyval_node * node);
+double keyval_pair_get_value_double(struct keyval_node * node);
 
 #endif

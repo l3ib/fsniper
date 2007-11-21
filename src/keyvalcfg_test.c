@@ -16,39 +16,6 @@ struct test_case_sanitize {
 	char * output;
 };
 
-void strip_comments(char * string);
-unsigned char test_strip_comments(void) {
-	size_t i;
-	struct test_case cases[] = {
-		{"# comment", "         "},
-		{"hello # comment", "hello          "},
-		{"hello # comment\n# hi\nthere # heh", "hello          \n    \nthere      "}
-	};
-	
-	printf("strip_comments\n");
-	
-	for (i = 0; i < (sizeof(cases) / sizeof(cases[0])); i++) {
-		char * input;
-		
-		printf("\ttest case %d: ", i);
-		
-		input = strdup(cases[i].input);
-		strip_comments(input);
-		
-		if (strcmp(input, cases[i].output) == 0) {
-			printf("pass\n");
-		} else {
-			printf("fail\n");
-			printf("\t\texpected: \"%s\"\n\t\tgot: \"%s\"\n", cases[i].output, input);
-		}
-		
-		free(input);
-	}
-
-	return 1;
-}
-
-
 void collapse(char * string);
 unsigned char test_collapse(void) {
 	size_t i;
@@ -219,8 +186,6 @@ int main(void) {
 	char * data = "lol { pice { x = 0\nno = u} } ham { burgled = true }";
 	struct keyval_node * node;
 
-	test_strip_comments();
-	putchar('\n');
 	test_collapse();
 	putchar('\n');
 	test_strip_multiple_spaces();
