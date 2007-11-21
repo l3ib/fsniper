@@ -185,7 +185,6 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file);
 int main(void) {
 	char * data = "lol { pice { x = 0\nno = u} } ham { burgled = true }";
 	struct keyval_node * node;
-	struct keyval_node * list;
 
 	test_collapse();
 	putchar('\n');
@@ -200,12 +199,7 @@ int main(void) {
 	node = keyval_parse_file("test/keyval_test.cfg");
 	keyval_node_write(node, 0, stdout);
 	
-	list = keyval_node_get_value_list(keyval_node_find(node->children, "numbers"));
-	
-	printf("%d\n", keyval_node_get_value_int(list->next->next));
-	
 	keyval_node_free_all(node);
-	keyval_node_free_all(list);
 	
 	node = keyval_parse_string(data);
 	keyval_node_write(node, 0, stdout);

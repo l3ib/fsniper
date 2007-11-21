@@ -50,7 +50,17 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		while (--count) strncat(tabs, "\t", 1);
 	}
 	
-	if (node->children) {
+	if (keyval_node_has_list_value(node)) {
+		/* yay, a list! */
+		struct keyval_node * child;
+		fprintf(file, "%s%s = [", tabs, node->name);
+
+		for (child = node->children; child; child = child->next) {
+			fprintf(file, "%s", child->value);
+			if (child->next) fprintf(file, ", ");
+			else fprintf(file, "]\n");
+		}
+	} else if (node->children) {
 		struct keyval_node * child = node->children;
 		if (node->name) fprintf(file, "%s%s {\n", tabs, node->name);
 
@@ -245,6 +255,12 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 			node->value = count ? sanitize_str(data, count) : NULL;
 			node->next = node->children = NULL;
 
+			if (keyval_node_has_list_value(node)) {
+				node->children = keyval_node_get_value_list(node);
+				free(node->value);
+				node->value = NULL;
+			}
+
 			data += count;
 
 			if (type_key == '#' || type_value == '#') {
@@ -365,11 +381,29 @@ double keyval_node_get_value_double(struct keyval_node * node) {
 }
 
 unsigned char keyval_node_has_list_value(struct keyval_node * node) {
-	if (!node->value) return 0;
+	struct keyval_node * child;
 	
-	if (*node->value == '[') {
-		size_t len = strlen(node->value);
-		if (node->value[len - 1] == ']') return 1;
+	/* a node is a list if:
+	 * it has no value,
+	 * it has children,
+	 * its children do not have children,
+	 * its children do not have names.
+	 */
+	
+	if (node->value) {
+		if (node->value && (*node->value == '[')) {
+			size_t len = strlen(node->value);
+			if (node->value[len - 1] == ']') return 1;
+		}
+	} else {
+		unsigned result = 1;
+		if (!node->children) return 0;
+
+		for (child = node->children; child; child = child->next) {
+			if (child->name || child->children) result = 0;
+		}
+
+		return result;
 	}
 	
 	return 0;

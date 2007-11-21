@@ -62,8 +62,10 @@ struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
 /* whether or not the given node contains a list-type value. */
 unsigned char keyval_node_has_list_value(struct keyval_node * node);
 
-/* parses a list-type value. use this! gives you a bunch of nodes with no
- * children or comments or keys. */
+/* parses a list-type value. you probably won't want to use this yourself.
+ * the parser automatically parses lists when encountered.
+ * this function gives you a bunch of nodes with no children or comments
+ * or keys. */
 struct keyval_node * keyval_node_get_value_list(struct keyval_node * node);
 
 /* convenience functions for getting values. figure it out. */
