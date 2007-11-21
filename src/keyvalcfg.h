@@ -30,6 +30,10 @@ struct keyval_node {
 	 * a section, the value is NULL. */
 	char * value;
 	
+	/* any comment associated with this node. the whole node could be just
+	 * a comment!*/
+	char * comment;
+
 	/* self explanatory, can be null if appropriate */
 	struct keyval_node * children;
 	struct keyval_node * head;
@@ -52,7 +56,10 @@ int keyval_pair_get_value_int(struct keyval_node * node);
 double keyval_pair_get_value_double(struct keyval_node * node);
 
 /* parses a config file, the infamous parser func */
-struct keyval_node * keyval_parse(const char * filename);
+struct keyval_node * keyval_parse_file(const char * filename);
+
+/* parses a string */
+struct keyval_node * keyval_parse_string(const char * data);
 
 /* writes the stuff out to a file. returns 1 on success, 0 on
  * failure. if filename is NULL, writes to stdout. */

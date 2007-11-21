@@ -30,71 +30,40 @@
 #define IS_END_KEY(c) (((c) == '\0') || ((c) == '{') || ((c) == '=') || ((c) == '}'))
 #define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n'))
 
-#if 0
-/* writes 'section' and all its children to 'file' */
-static void keyval_section_write(struct keyval_section * section,
-	unsigned recursion, FILE * file) {
+void keyval_node_free_all(struct keyval_node * node) {
+	/* free will do nothing if these are null */
+	free(node->name);
+	free(node->value);
 	
-	struct keyval_pair * pair;
-	unsigned count = recursion;
-	struct keyval_section * children = section->children;
-	char * recursion_tabs = malloc(recursion + 1); /* one tab per recurse */
-	recursion_tabs[0] = '\0';
-
-	while (count--) strncat(recursion_tabs, "\t", 1);
-
-	if (section->name) {
-		fprintf(file, "%s%s {\n", recursion_tabs + 1, section->name);
-	}
-
-	/* write out all of the key value pairs in this section */
-	pair = section->keyvals;
-	while (pair) {
-		fprintf(file, "%s%s = %s;\n", recursion_tabs, pair->key, pair->value);
-		pair = pair->next;
-	}
-
-	/* recurse (for child sections) */
-	while (children) {
-		keyval_section_write(children, recursion + 1, file);
-		children = children->next;
-	}
-
-	if (section->name) fprintf(file, "%s}\n", recursion_tabs + 1);
-
-	free(recursion_tabs);
+	if (node->children) keyval_node_free_all(node->children);
+	if (node->next) keyval_node_free_all(node->next);
+	
+	free(node);
 }
-
-unsigned char keyval_write(struct keyval_section * section,
-	const char * filename) {
-
-	FILE * file = stdout;
-	if (filename && !(file = fopen(filename, "w"))) return 0;
-
-	keyval_section_write(section, 0, file);
-	if (filename) fclose(file);
-
-	return 1;
-}
-#endif
 
 void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
-	char * tabs = malloc(depth + 1);
-	size_t count = depth;
-	while (count--) strncat(tabs, "\t", 1);
+	char * tabs = "";
+
+	if (depth) {
+		size_t count = depth;
+		tabs = calloc(depth, sizeof(char));
+		while (--count) strncat(tabs, "\t", 1);
+	}
 	
 	if (node->children) {
 		struct keyval_node * child = node->children;
-		fprintf(file, "%s%s {\n", tabs, node->name);
+		if (node->name) fprintf(file, "%s%s {\n", tabs, node->name);
 
 		while (child) {
 			keyval_node_write(child, depth + 1, file);
 			child = child->next;
 		}
-		fprintf(file, "%s}\n", tabs);
+		if (node->name) fprintf(file, "%s}\n", tabs);
 	} else {
 		fprintf(file, "%s%s = %s\n", tabs, node->name, node->value);
 	}
+	
+	if (depth) free(tabs);
 }
 
 /* returns 'data' + some offset (skips leading whitespace) */
@@ -109,9 +78,15 @@ char * skip_leading_whitespace(char * data) {
 /* returns the length of 'string' if trailing whitespace was to be
  * removed. */
 size_t skip_trailing_whitespace(char * string) {
-	size_t len = strlen(string) - 1;
+	size_t len;
+	
+	if (!*string) return 0;
+	
+	len = strlen(string) - 1;
 
-	while (IS_SPACE(string[len])) len--;
+	while (IS_SPACE(string[len])) {
+		len--;
+	}
 
 	return len + 1;
 }
@@ -137,33 +112,13 @@ char * sanitize_str(char * source, size_t n) {
 	return ret;
 }
 
-/* removes c-style comments from 'string'; replaces them with whitespace.
- * not the most elegant method of doing this (it modifies the argument it
- * receives.) */
-/*static void strip_comments(char * string) {
-	for (; *string; string++) {
-		if (string[0] == '/' && string[1] == '*') {*/
-				/* we're starting a comment */
-/*				size_t pos = 0;
-				while (string[pos] && !(string[pos] == '*' && string[pos + 1] == '/')) {
-					string[pos] = ' ';
-					pos++;
-				}
-				if (!string[pos]) return;
-				string[pos] = ' ';
-				string[pos + 1] = ' ';
-
-				string += pos + 1;
-		}
-	}
-}*/
-
 /* removes # comments from 'string' and replaces them with whitespace. */
 void strip_comments(char * string) {
 	for (; *string; string++) {
 		if (*string == '#') {
 			/* we've found a comment. it should last until the end of the line. */
-			for (; *string && (*string != '\n'); string++) {
+			for (; *string != '\n'; string++) {
+				if (*string == '\0') return;
 				*string = ' ';
 			}
 		}
@@ -201,22 +156,23 @@ char * strip_multiple_spaces(char * string) {
 	size_t len = 0;
 	char * result = malloc(sizeof(char) * (strlen(string) + 1));
 	unsigned char seen_space = 0;
-	char space_char = 0;
 
 	for (;;) {
 		if (IS_SPACE(*string)) {
-			seen_space++;
-			space_char = *string;
+			if (!seen_space) seen_space = 1 + (*string == '\n');
 		} else {
 			if (seen_space) {
-				result[len++] = (seen_space == 1) ? space_char : ' ';
+				result[len++] = (seen_space == 1) ? ' ' : '\n';
 				seen_space = 0;
 			}
 
 			result[len++] = *string;
 		}
 
-		if (*string == '\0') break;
+		if (*string == '\0') {
+			len--;
+			break;
+		}
 		string++;
 	}
 
@@ -235,7 +191,7 @@ unsigned char is_end_key(char c) {
 
 /* the parser. probably full of bugs. ph34r.
  * stops if it encounters } or end of string. */
-struct keyval_node * keyval_parse_node(char ** _data, size_t indent) {
+struct keyval_node * keyval_parse_node(char ** _data) {
 	struct keyval_node * head = malloc(sizeof(struct keyval_node));
 	struct keyval_node * child = NULL; /* last child found */
 
@@ -299,7 +255,7 @@ struct keyval_node * keyval_parse_node(char ** _data, size_t indent) {
 
 			node = malloc(sizeof(struct keyval_node));
 			node->value = sanitize_str(data, count);
-			node->next = NULL;
+			node->next = node->children = NULL;
 
 			/* done! */
 			data += count;
@@ -308,7 +264,7 @@ struct keyval_node * keyval_parse_node(char ** _data, size_t indent) {
 		} else if (data[count] == '{') {
 			/* it's a section. */
 			char * d = data + count + 1;
-			node = keyval_parse_node(&d, indent + 1);
+			node = keyval_parse_node(&d);
 			data = d;
 		} else {
 			/* stop. */
@@ -330,11 +286,29 @@ struct keyval_node * keyval_parse_node(char ** _data, size_t indent) {
 	return head;
 }
 
-struct keyval_node * keyval_parse(const char * filename) {
+struct keyval_node * keyval_parse_string(const char * data) {
+	struct keyval_node * head;
+	char * data2 = strdup(data);
+	char * data3;
+	
+	/* preprocessing */
+	collapse(data2);
+	data3 = strip_multiple_spaces(data2);
+	free(data2);
+
+	/* to make sure that keyval_parse_node doesn't mess up our pointer to data3 */
+	data2 = data3;
+	head = keyval_parse_node(&data2);
+	
+	free(data3);
+
+	return head;
+}
+
+struct keyval_node * keyval_parse_file(const char * filename) {
 	char buf[PICESIZE];
 	FILE * file = fopen(filename, "r");
 	char * data = malloc(PICESIZE);
-	char * data2 = data;
 
 	struct keyval_node * node;
 
@@ -347,7 +321,7 @@ struct keyval_node * keyval_parse(const char * filename) {
 	}
 	fclose(file);
 
-	node = keyval_parse_node(&data2, 0);
+	node = keyval_parse_string(data);
 	free(data);
 
 	return node;

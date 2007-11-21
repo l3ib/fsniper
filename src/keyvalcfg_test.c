@@ -218,8 +218,6 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file);
 int main(void) {
 	char * data = "lol { pice { x = 0\nno = u} } ham { burgled = true }";
 	struct keyval_node * node;
-	
-	/*data = "pice = l3ib";*/
 
 	test_strip_comments();
 	putchar('\n');
@@ -232,8 +230,9 @@ int main(void) {
 	test_skip_trailing_whitespace();
 	putchar('\n');
 	test_sanitize_str();
-	
-	node = keyval_parse_node(&data, 0);
+
+	node = keyval_parse_file("test/keyval_test.cfg");
 	keyval_node_write(node, 0, stdout);
+	keyval_node_free_all(node);
 	return 0;
 }
