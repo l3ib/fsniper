@@ -51,7 +51,7 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		while (--count) strncat(tabs, "\t", 1);
 	}
 	
-	/*printf("(%d)", keyval_node_get_value_type(node));*/
+	printf("(%d)", keyval_node_get_value_type(node));
 	
 	if (keyval_node_get_value_type(node) == KEYVAL_TYPE_LIST) {
 		/* yay, a list! */
@@ -468,11 +468,19 @@ enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node) {
 			case 'T':
 			case 'y':
 			case 'Y':
-			case '1':
+			case 'f':
+			case 'F':
+			case 'n':
+			case 'N':
 				return KEYVAL_TYPE_BOOL;
 			default: break;
 		}
 	}
+	
+	if (strcasecmp(node->value, "true") == 0) return KEYVAL_TYPE_BOOL;
+	if (strcasecmp(node->value, "false") == 0) return KEYVAL_TYPE_BOOL;
+	if (strcasecmp(node->value, "yes") == 0) return KEYVAL_TYPE_BOOL;
+	if (strcasecmp(node->value, "no") == 0) return KEYVAL_TYPE_BOOL;
 
 	for (s = node->value; *s; s++) {
 		if (!isdigit(*s)) {
