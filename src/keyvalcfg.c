@@ -190,6 +190,18 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 	if (depth) free(tabs);
 }
 
+unsigned char keyval_write(struct keyval_node * head, const char * filename) {
+	FILE * out;
+	
+	out = fopen(filename, "w");
+	if (!out) return 0; /* error */
+	
+	keyval_node_write(head, 0, out);
+	fclose(out);
+
+	return 1;
+}
+
 /* returns 'data' + some offset (skips leading whitespace) */
 char * skip_leading_whitespace(char * data, size_t * lines) {
 	while (*data && IS_SPACE(*data)) {
@@ -360,7 +372,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 
 			/* the value is all characters until some...*/
 
-			if ((type_key != '#') && ((*data == '\0') || (*data == '\n'))) {
+			if ((type_key != '#') && ((*data == '\0') || (*data == '\n') || (*data == '#'))) {
 				/* malformed... expected a value, got end of line */
 				/* we want something like
 				 * keyvalcfg: error: expected a value after key = in section section

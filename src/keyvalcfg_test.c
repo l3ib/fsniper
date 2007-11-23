@@ -197,12 +197,13 @@ int main(void) {
 	putchar('\n');
 	test_sanitize_str();*/
 
-	node = keyval_parse_file("test/keyval_test3.cfg");
+	node = keyval_parse_file("test/keyval_test2.cfg");
 	s = keyval_get_error();
 	if (s) {
 		printf("%s", s);
 		free(s);
 	}
+	keyval_write(node, "out.cfg");
 	/*
 	free(node->children->children->next->value);
 	node->children->children->next->value = strdup("haha\nlol\nhaha fhiuhef . . .   ");
