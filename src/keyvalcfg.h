@@ -54,6 +54,9 @@ struct keyval_node * keyval_parse_string(const char * data);
  * failure. if filename is NULL, writes to stdout. */
 unsigned char keyval_write(struct keyval_node * head, const char * filename);
 
+/* gets the name of a node. */
+char * keyval_node_get_name(struct keyval_node * node);
+
 /* finds the first keyval_node with name 'name' in a linked list.
  * returns NULL on failure. note that this does not check children. */
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);

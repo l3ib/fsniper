@@ -186,7 +186,7 @@ int main(void) {
 	char * data = "lol { pice { x = 0\nno = u} } ham { burgled = true }";
 	char * s;
 	struct keyval_node * node;
-
+/*
 	test_collapse();
 	putchar('\n');
 	test_strip_multiple_spaces();
@@ -195,24 +195,27 @@ int main(void) {
 	putchar('\n');
 	test_skip_trailing_whitespace();
 	putchar('\n');
-	test_sanitize_str();
+	test_sanitize_str();*/
 
-	node = keyval_parse_file("test/keyval_test2.cfg");
+	node = keyval_parse_file("test/keyval_test3.cfg");
 	s = keyval_get_error();
-	printf("%s", s);
-	free(s);
+	if (s) {
+		printf("%s", s);
+		free(s);
+	}
+	/*
 	free(node->children->children->next->value);
 	node->children->children->next->value = strdup("haha\nlol\nhaha fhiuhef . . .   ");
 	keyval_node_write(node, 0, stdout);
 	
 	s = keyval_list_to_string(node->children->children->next);
 	printf("string version: %s\n", s);
-	free(s);
+	free(s);*/
 
 	keyval_node_free_all(node);
 	
-	node = keyval_parse_string(data);
+	/*node = keyval_parse_string(data);
 	keyval_node_write(node, 0, stdout);
-	keyval_node_free_all(node);
+	keyval_node_free_all(node);*/
 	return 0;
 }
