@@ -98,6 +98,118 @@ To elaborate on the linked-list nature of the node structure, the `head` of the
 occupied by `root two`. Note that the `favourites` node knows nothing about its
 connection to the `irrationals` node.
 
+Getting Your Hands Dirty
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Parse Functions
+^^^^^^^^^^^^^^^
+There are two parse functions available. Use these to have the parser do its
+thing.
+--------------------------------------------------------------------------------
+struct keyval_node * keyval_parse_file(const char * filename);
+struct keyval_node * keyval_parse_string(const char * data);
+--------------------------------------------------------------------------------
+The first one takes a file name and returns the parsed node structure. The
+second one takes a string of data (perhaps the contents of a file) and returns
+the parsed node structure.
+
+As an artifact of the parser, the returned node is a sort of 'supernode'. The
+only item of interest in this node is `children`.
+
+Avoiding Memory Leaks
+^^^^^^^^^^^^^^^^^^^^^
+When you're done with the 'supernode' structure, you should free it using this
+function.
+--------------------------------------------------------------------------------
+void keyval_node_free_all(struct keyval_node * head);
+--------------------------------------------------------------------------------
+
+Navigating a Node
+^^^^^^^^^^^^^^^^^
+It may be wise to use the data returned to you by the parser. The principal
+node navigation function is:
+--------------------------------------------------------------------------------
+struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
+--------------------------------------------------------------------------------
+This function will traverse a linked list of nodes and return the first one
+named `name`. If no such node is found, it returns NULL. You can use this
+function to successively find (and do something with) all nodes with a specific
+name.
+
+For example, suppose your configuration file was as follows.
+--------------------------------------------------------------------------------
+student {
+	name = Andrew
+	gpa = 0.337
+}
+
+student {
+	name = Dave
+	gpa = 4.0
+}
+--------------------------------------------------------------------------------
+
+You could easily print all student names using some code like:
+--------------------------------------------------------------------------------
+struct keyval_node * students = keyval_parse_file("students.cfg");
+struct keyval_node * student = students->children;
+while ((student = keyval_node_find(student, "student"))) {
+	char * name = keyval_node_get_value_string(keyval_node_find(student->children, "name"));
+	printf("%s\n", name);
+	free(name);
+}
+keyval_node_free_all(students);
+--------------------------------------------------------------------------------
+NOTE: Error checking is omitted in the above example for clarity. You would run
+      into difficulty if there was a `student` section with no `name` field.
+
+NOTE: In the above example, we have used a new function,
+      `keyval_node_get_value_string`.
+
+Getting Values
+~~~~~~~~~~~~~~
+Value Types
+^^^^^^^^^^^
+You can find out the type of a `node`'s `value` using the following.
+--------------------------------------------------------------------------------
+enum keyval_value_type {
+	KEYVAL_TYPE_NONE,
+	KEYVAL_TYPE_BOOL,
+	KEYVAL_TYPE_STRING,
+	KEYVAL_TYPE_INT,
+	KEYVAL_TYPE_DOUBLE,
+	KEYVAL_TYPE_LIST
+};
+
+/* determines the value type of a node. */
+enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node);
+--------------------------------------------------------------------------------
+The possible return values for `keyval_node_get_value_type` are enumerated in
+`enum keyval_value_type`.
+
+This function determines the best possible type of a value. It will certainly
+return correct results for numbers, lists, and strings. However, there can be
+ambiguity in parsing boolean values. Boolean values will be recognized if:
+
+1. The value is of length 1 and is one of `t`, `T`, `y`, `Y`, `f`, `F`, `n`,
+   `N`, or
+2. The value is some variation of `true` or `false` (case insensitive comparison
+   is performed.)
+
+Value Acquisition
+^^^^^^^^^^^^^^^^^
+Once you know what type of value you want, you can call the corresponding value
+acquisition function.
+--------------------------------------------------------------------------------
+unsigned char keyval_node_get_value_bool(struct keyval_node * node);
+char * keyval_node_get_value_string(struct keyval_node * node);
+int keyval_node_get_value_int(struct keyval_node * node);
+double keyval_node_get_value_double(struct keyval_node * node);
+--------------------------------------------------------------------------------
+These are self explanatory.
+NOTE: All string values returned to you by a function will need to be `free()` d
+      manually.
+
 Handling Multi-line Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 You may come across situations where you wish to store string values containing
@@ -115,7 +227,26 @@ unambiguously distinguish between a multi-line value and a list of strings. The
 parser will not attempt to convert lists of strings to multi-line values.
 
 Upon writing, the parser will automatically convert multi-line values into
-lists of strings. A convenience function, `keyval_list_to_string`, is provided
-that allows the user to convert a list of strings into a multi-line string.
+lists of strings. A convenience function is provided that allows the user to
+convert a list of strings into a multi-line string.
+--------------------------------------------------------------------------------
+/* joins elements of a list of strings, separating them by newline characters. */
+char * keyval_list_to_string(struct keyval_node * node);
+--------------------------------------------------------------------------------
 
+Using Special Characters
+~~~~~~~~~~~~~~~~~~~~~~~~
+The `#`, `{`, and `}` characters are currently not allowed in keys or values.
+This issue may be addressed in the future, likely by allowing one to 'escape'
+these characters using the `\` character.
 
+Writing Configuration Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Writing configuration files is straightforward. It is up to you to construct a
+well-formed supernode structure (as described above). You can then write the
+result out to a file (or standard output) using the following function.
+--------------------------------------------------------------------------------
+/* writes the stuff out to a file. returns 1 on success, 0 on
+ * failure. if filename is NULL, writes to stdout. */
+unsigned char keyval_write(struct keyval_node * head, const char * filename);
+--------------------------------------------------------------------------------

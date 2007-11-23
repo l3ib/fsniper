@@ -52,8 +52,7 @@ struct keyval_node * keyval_parse_string(const char * data);
 
 /* writes the stuff out to a file. returns 1 on success, 0 on
  * failure. if filename is NULL, writes to stdout. */
-unsigned char keyval_write(struct keyval_node * head,
-	const char * filename);
+unsigned char keyval_write(struct keyval_node * head, const char * filename);
 
 /* finds the first keyval_node with name 'name' in a linked list.
  * returns NULL on failure. note that this does not check children. */
