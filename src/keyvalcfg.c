@@ -30,6 +30,25 @@
 #define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n') || ((c) == '#'))
 #define IS_END_LIST(c) (((c) == '\0') || ((c) == ']') || ((c) == ','))
 
+/* error string of craziness */
+static char * error = NULL;
+
+static void keyval_append_error(char * e) {
+	if (error) {
+		error = realloc(error, strlen(error) + strlen(e) + 1);
+		strcat(error, e);
+	} else {
+		error = strdup(e);
+	}
+}
+
+char * keyval_get_error(void) {
+	char * ret = error;
+	error = NULL;
+	
+	return ret;
+}
+
 void keyval_node_free_all(struct keyval_node * node) {
 	/* free will do nothing if these are null */
 	free(node->name);
@@ -276,7 +295,7 @@ struct keyval_node * keyval_node_get_value_list(struct keyval_node * node) {
 
 /* the parser. probably full of bugs. ph34r.
  * stops if it encounters } or end of string. */
-struct keyval_node * keyval_parse_node(char ** _data) {
+struct keyval_node * keyval_parse_node(char ** _data, char * sec_name) {
 	struct keyval_node * head = malloc(sizeof(struct keyval_node));
 	struct keyval_node * child = NULL; /* last child found */
 
@@ -320,8 +339,17 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 
 			/* the value is all characters until some...*/
 
-			if ((*data == '\0') || (*data == '\n')) {
+			if ((type_key != '#') && ((*data == '\0') || (*data == '\n'))) {
 				/* malformed... expected a value, got end of line */
+				/* we want something like
+				 * keyvalcfg: error: expected a value after key = in section section
+				 */
+				char * e = malloc(strlen(name) + strlen(sec_name ? sec_name : "(none)") +
+				                  strlen("keyvalcfg: error: expected a value after `` = in section ``\n")
+				                  + 1);
+				sprintf(e, "keyvalcfg: error: expected a value after `%s =` in section `%s`\n", name, sec_name ? sec_name : "(none)");
+				keyval_append_error(e);
+				free(e);
 			}
 
 			count = 0;
@@ -369,7 +397,28 @@ struct keyval_node * keyval_parse_node(char ** _data) {
 		} else if (data[count] == '{') {
 			/* it's a section. */
 			char * d = data + count + 1;
-			node = keyval_parse_node(&d);
+			/* let us track error hierarchy. what's the current error state? */
+			char * e = error;
+			size_t e_len = error ? strlen(error) : 0;
+			node = keyval_parse_node(&d, name);
+			if ((error != e) || ((error) && (strlen(error) != e_len))) {
+				/* something went wrong in there. */
+				e = malloc(strlen(sec_name ? sec_name : "(none)") +
+				           strlen("keyval: (in section ``)\n") + 1);
+				sprintf(e, "keyval: (in section `%s`)\n", sec_name ? sec_name : "(none)");
+				keyval_append_error(e);
+				free(e);
+			}
+			if (d[-1] != '}') {
+				/* something went wrong. malformed config file. */
+				/* ERROR */
+				char * e = malloc(strlen(name) +
+				                  strlen("keyvalcfg: error: section `` never closed (missing `}`)")
+				                  + 1);
+				sprintf(e, "keyvalcfg: error: section `%s` never closed (missing `}`)\n", name);
+				keyval_append_error(e);
+				free(e);
+			}
 			data = d;
 		} else {
 			/* stop. */
@@ -403,7 +452,7 @@ struct keyval_node * keyval_parse_string(const char * data) {
 
 	/* to make sure that keyval_parse_node doesn't mess up our pointer to data3 */
 	data2 = data3;
-	head = keyval_parse_node(&data2);
+	head = keyval_parse_node(&data2, NULL);
 	
 	free(data3);
 

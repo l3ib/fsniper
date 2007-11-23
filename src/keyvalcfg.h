@@ -79,4 +79,9 @@ char * keyval_node_get_value_string(struct keyval_node * node);
 int keyval_node_get_value_int(struct keyval_node * node);
 double keyval_node_get_value_double(struct keyval_node * node);
 
+/* returns the error string or NULL if no error occurred. the internal error
+ * condition will be reset once this is called. */
+/* it's up to you to free the return value. */
+char * keyval_get_error(void);
+
 #endif

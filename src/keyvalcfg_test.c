@@ -198,6 +198,9 @@ int main(void) {
 	test_sanitize_str();
 
 	node = keyval_parse_file("test/keyval_test2.cfg");
+	s = keyval_get_error();
+	printf("%s", s);
+	free(s);
 	free(node->children->children->next->value);
 	node->children->children->next->value = strdup("haha\nlol\nhaha fhiuhef . . .   ");
 	keyval_node_write(node, 0, stdout);
