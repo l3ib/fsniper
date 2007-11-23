@@ -23,11 +23,11 @@
  * example config file. */
 
 struct keyval_node {
-	/* the name of the key or section. this is '#' for comment nodes. */
+	/* the name of the key or section. can be NULL. */
 	char * name;
 	
 	/* if this is a simple key-value pair, this contains the value. if this is
-	 * a section, the value is NULL. */
+	 * a section or just a comment, the value is NULL. */
 	char * value;
 	
 	/* any comment associated with this node. the whole node could be just
@@ -58,6 +58,9 @@ unsigned char keyval_write(struct keyval_node * head,
 /* finds the first keyval_node with name 'name' in a linked list.
  * returns NULL on failure. note that this does not check children. */
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
+
+/* joins elements of a list of strings, separating them by newline characters. */
+char * keyval_list_to_string(struct keyval_node * node);
 
 enum keyval_value_type {
 	KEYVAL_TYPE_NONE,

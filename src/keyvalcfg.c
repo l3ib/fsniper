@@ -42,56 +42,6 @@ void keyval_node_free_all(struct keyval_node * node) {
 	free(node);
 }
 
-void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
-	char * tabs = "";
-
-	if (depth) {
-		size_t count = depth;
-		tabs = calloc(depth, sizeof(char));
-		while (--count) strncat(tabs, "\t", 1);
-	}
-	
-	printf("(%d)", keyval_node_get_value_type(node));
-	
-	if (keyval_node_get_value_type(node) == KEYVAL_TYPE_LIST) {
-		/* yay, a list! */
-		struct keyval_node * child;
-		fprintf(file, "%s%s = [", tabs, node->name);
-
-		for (child = node->children; child; child = child->next) {
-			fprintf(file, "%s", child->value);
-			if (child->next) fprintf(file, ", ");
-			else fprintf(file, "]\n");
-		}
-	} else if (node->children) {
-		struct keyval_node * child = node->children;
-		if (node->name) fprintf(file, "%s%s {\n", tabs, node->name);
-
-		while (child) {
-			keyval_node_write(child, depth + 1, file);
-			child = child->next;
-		}
-		if (node->name) fprintf(file, "%s}\n", tabs);
-	} else {
-		if (node->name) {
-			fprintf(file, "%s%s = %s", tabs, node->name, node->value);
-			if (node->comment) fprintf(file, " # %s", node->comment);
-		} else if (node->comment) fprintf(file, "%s# %s\n", tabs, node->comment);
-		fputc('\n', file);
-	}
-
-	if (depth) free(tabs);
-}
-
-/* returns 'data' + some offset (skips leading whitespace) */
-char * skip_leading_whitespace(char * data) {
-	while (*data && IS_SPACE(*data)) {
-		data++;
-	}
-
-	return data;
-}
-
 /* returns the length of 'string' if trailing whitespace was to be
  * removed. */
 size_t skip_trailing_whitespace(char * string) {
@@ -131,6 +81,98 @@ char * sanitize_str(char * source, size_t n) {
 	}
 
 	return ret;
+}
+
+/* takes a node whose value contains newlines and sanitizes it into a list
+ * structure. */
+void keyval_node_clear_newlines(struct keyval_node * node) {
+	char * pos = NULL;
+	char * cur = node->value;
+	struct keyval_node * children = NULL;
+
+	if (!cur) return;
+
+	while ((pos = strchr(cur, '\n'))) {
+		struct keyval_node * element = malloc(sizeof(struct keyval_node));
+		element->name = element->comment = NULL;
+
+		element->head = children ? children->head : element;
+		element->next = element->children = NULL;
+
+		element->value = sanitize_str(cur, pos - cur);
+		cur = pos + 1;
+
+		if (children) children->next = element;
+		children = element;
+	}
+	
+	if (cur != node->value) {
+		/* we have yet to handle the part after the last newline. */
+		struct keyval_node * element = malloc(sizeof(struct keyval_node));
+		element->name = element->comment = NULL;
+
+		element->head = children ? children->head : element;
+		element->next = element->children = NULL;
+
+		element->value = sanitize_str(cur, strlen(cur));
+		children->next = element;
+
+		free(node->value);
+		node->value = NULL;
+		node->children = children->head;
+	}
+}
+
+void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
+	char * tabs = "";
+
+	if (depth) {
+		size_t count = depth;
+		tabs = calloc(depth, sizeof(char));
+		while (--count) strncat(tabs, "\t", 1);
+	}
+	
+	/*printf("(%d)", keyval_node_get_value_type(node));*/
+	
+	keyval_node_clear_newlines(node);
+	
+	if (keyval_node_get_value_type(node) == KEYVAL_TYPE_LIST) {
+		/* yay, a list! */
+		struct keyval_node * child;
+		fprintf(file, "%s%s = [", tabs, node->name);
+
+		for (child = node->children; child; child = child->next) {
+			fprintf(file, "%s", child->value);
+			if (child->next) fprintf(file, ", ");
+			else fprintf(file, "]\n");
+		}
+	} else if (node->children) {
+		struct keyval_node * child = node->children;
+		if (node->name) fprintf(file, "%s%s {\n", tabs, node->name);
+
+		while (child) {
+			keyval_node_write(child, depth + 1, file);
+			child = child->next;
+		}
+		if (node->name) fprintf(file, "%s}\n", tabs);
+	} else {
+		if (node->name) {
+			fprintf(file, "%s%s = %s", tabs, node->name, node->value);
+			if (node->comment) fprintf(file, " # %s", node->comment);
+		} else if (node->comment) fprintf(file, "%s# %s\n", tabs, node->comment);
+		fputc('\n', file);
+	}
+
+	if (depth) free(tabs);
+}
+
+/* returns 'data' + some offset (skips leading whitespace) */
+char * skip_leading_whitespace(char * data) {
+	while (*data && IS_SPACE(*data)) {
+		data++;
+	}
+
+	return data;
 }
 
 /* collapses multi-line statements into one line. the '\' character is used to
@@ -494,4 +536,29 @@ enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node) {
 	}
 	
 	return type;
+}
+
+char * keyval_list_to_string(struct keyval_node * node) {
+	struct keyval_node * element;
+	size_t len = 0;
+	char * string;
+	
+	if (keyval_node_get_value_type(node) != KEYVAL_TYPE_LIST) return NULL;
+	
+	/* pass one: count length */
+	for (element = node->children; element; element = element->next) {
+		len += strlen(element->value) + 1;
+	}
+	
+	/* len really is one more than the wanted length, but that turns out to be
+	 * fine since we need space for the trailing newline */
+	string = calloc(len, sizeof(char));
+	
+	/* pass two: concatenate! */
+	for (element = node->children; element; element = element->next) {
+		strcat(string, element->value);
+		if (element->next) strcat(string, "\n");
+	}
+
+	return string;
 }

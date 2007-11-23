@@ -1,0 +1,121 @@
+Using the keyvalcfg Configuration Parser
+========================================
+Javeed Shaikh <syscrash2k@gmail.com>
+
+The keyvalcfg configuration parser allows one to parse simple human-readable
+plain text configuration files from the C programming language.
+
+Configuration File Syntax
+-------------------------
+[[first-example]]
+A First Example
+~~~~~~~~~~~~~~~
+--------------------------------------------------------------------------------
+rationals {
+	# i couldn't come up with anything more clever than these...
+	zero = 0
+	unity = 1
+}
+
+irrationals {
+	pi = 3.14159265358979 # ratio of the circumference to the diameter of a circle
+	root two = 1.4142135623731 # positive solution to x^2 = 2
+
+	favourites {
+		golden ratio = 1.61803399
+	}
+}
+
+# some simple lists
+odd numbers = [1, 3, 5, 7, \
+               9, 11, ...]
+even numbers = [2, 4, 6, 8, 10, ...]
+
+# a sample boolean
+this parser rocks = true # haha, sure
+--------------------------------------------------------------------------------
+
+Analysis
+~~~~~~~~
+The above example illustrates several important features:
+
+	- Sections are opened and closed using curly braces, `{` and `}`, and can
+	  contain other sections.
+	- Comments are started using the `#` character and continue until the end of
+	  the line.
+	- Key-value pairs are specified using the syntax `key = value`.
+	- Lists begin with `[` and end with `]`. Their values are separated by `,`
+	  characters.
+	- If the last non-space character on a line is a `\`, the parser will pretend
+	  that no newline exists. This allows one to span long values across multiple
+	  lines.
+
+In fact, that was probably everything that someone interested only in reading
+and writing configuration files by hand (a non-developer) would need to know.
+
+Using the Parser
+----------------
+If you're interested in using the parser in one of your C programs, this section
+is for you. Fear not, for the parser is relatively easy to use.
+
+The Principal Node Structure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Every section and key-value pair is termed a 'node'. The structure used to
+represent a node is `struct keyval_node`. The structure definition follows.
+
+--------------------------------------------------------------------------------
+struct keyval_node {
+	/* the name of the key or section. can be NULL. */
+	char * name;
+	
+	/* if this is a simple key-value pair, this contains the value. if this is
+	 * a section or just a comment, the value is NULL. */
+	char * value;
+	
+	/* any comment associated with this node. the whole node could be just
+	 * a comment!*/
+	char * comment;
+
+	/* self explanatory, can be null if appropriate */
+	struct keyval_node * children;
+	struct keyval_node * head;
+	struct keyval_node * next;
+};
+--------------------------------------------------------------------------------
+
+Note that `struct keyval_node` is a 'linked list' type of structure. Each node
+can have nodes before and after it, as well as 'child' nodes contained within
+it.
+
+Consider the `irrationals` section in our <<first-example,first example>>. This
+section is represented as a `struct keyval_node` with three child nodes, namely
+`pi`, `root two`, and `favourites`. Each of these three child nodes is a
+`struct keyval_node` in its own right. However, `pi` and `root two` have only
+`value` fields and no children.
+
+To elaborate on the linked-list nature of the node structure, the `head` of the
+`favourites` node is the `pi` node. The `next` field of the `pi` node is
+occupied by `root two`. Note that the `favourites` node knows nothing about its
+connection to the `irrationals` node.
+
+Handling Multi-line Values
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+You may come across situations where you wish to store string values containing
+newline characters. Clearly there is no direct way of storing such values in
+configuration files used by this parser, as they are newline-separated.
+
+Workaround
+^^^^^^^^^^
+The solution to the newline-containing value problem employed by the parser is
+to store the value as a list of strings, with each list element being one line
+of the value.
+
+One drawback of this approach is that there is no way to
+unambiguously distinguish between a multi-line value and a list of strings. The
+parser will not attempt to convert lists of strings to multi-line values.
+
+Upon writing, the parser will automatically convert multi-line values into
+lists of strings. A convenience function, `keyval_list_to_string`, is provided
+that allows the user to convert a list of strings into a multi-line string.
+
+
