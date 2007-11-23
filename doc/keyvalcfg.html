@@ -435,6 +435,38 @@ second one takes a string of data (perhaps the contents of a file) and returns
 the parsed node structure.</p></div>
 <div class="para"><p>As an artifact of the parser, the returned node is a sort of <em>supernode</em>. The
 only item of interest in this node is <tt>children</tt>.</p></div>
+<h4 id="_error_checking">Error Checking</h4>
+<div class="para"><p>Since users might be writing configuration files, there are likely to be syntax
+errors. The following function returns an error string or <tt>NULL</tt> if there were
+no errors.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>/* returns the error string or NULL if no error occurred. the internal error
+ * condition will be reset once this is called. */
+/* it's up to you to free the return value. */
+char * keyval_get_error(void);</tt></pre>
+</div></div>
+<div class="para"><p>The error string includes section and line information that will help fix the
+error.</p></div>
+<div class="para"><p>It is almost always a good idea to somehow get this error string to the user.
+A reasonable way of doing this is to print to standard error, or, if your
+program has a gui, popping up an error dialog.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">You should always free the error string returned to you.</td>
+</tr></table>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">After calling a parse function, you should always check for errors.</td>
+</tr></table>
+</div>
 <h4 id="_avoiding_memory_leaks">Avoiding Memory Leaks</h4>
 <div class="para"><p>When you're done with the <em>supernode</em> structure, you should free it using this
 function.</p></div>
@@ -442,6 +474,14 @@ function.</p></div>
 <div class="content">
 <pre><tt>void keyval_node_free_all(struct keyval_node * head);</tt></pre>
 </div></div>
+<h4 id="_getting_node_names">Getting Node Names</h4>
+<div class="para"><p>If you've acquired a node, you can get its name using the following function.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>char * keyval_node_get_name(struct keyval_node * node);</tt></pre>
+</div></div>
+<div class="para"><p>The function will return NULL if a node has no name. Always remember to free
+the result.</p></div>
 <h4 id="_navigating_a_node">Navigating a Node</h4>
 <div class="para"><p>It may be wise to use the data returned to you by the parser. The principal
 node navigation function is:</p></div>
@@ -458,7 +498,7 @@ name.</p></div>
 <div class="content">
 <pre><tt>student {
         name = Andrew
-        gpa = 0.337
+        gpa = 0.1337
 }
 
 student {
@@ -484,7 +524,8 @@ keyval_node_free_all(students);</tt></pre>
 <div class="title">Note</div>
 </td>
 <td class="content">Error checking is omitted in the above example for clarity. You would run
-      into difficulty if there was a <tt>student</tt> section with no <tt>name</tt> field.</td>
+      into difficulty if there was a <tt>student</tt> section with no <tt>name</tt> field or
+      if a parse error was encountered.</td>
 </tr></table>
 </div>
 <div class="admonitionblock">
@@ -581,7 +622,7 @@ unsigned char keyval_write(struct keyval_node * head, const char * filename);</t
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2007-11-22 20:07:22 EDT
+Last updated 2007-11-23 13:58:53 EDT
 </div>
 </div>
 </body>

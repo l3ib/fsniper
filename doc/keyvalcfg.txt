@@ -116,6 +116,30 @@ the parsed node structure.
 As an artifact of the parser, the returned node is a sort of 'supernode'. The
 only item of interest in this node is `children`.
 
+Error Checking
+^^^^^^^^^^^^^^
+Since users might be writing configuration files, there are likely to be syntax
+errors. The following function returns an error string or `NULL` if there were
+no errors.
+
+--------------------------------------------------------------------------------
+/* returns the error string or NULL if no error occurred. the internal error
+ * condition will be reset once this is called. */
+/* it's up to you to free the return value. */
+char * keyval_get_error(void);
+--------------------------------------------------------------------------------
+
+The error string includes section and line information that will help fix the
+error.
+
+It is almost always a good idea to somehow get this error string to the user.
+A reasonable way of doing this is to print to standard error, or, if your
+program has a gui, popping up an error dialog.
+
+NOTE: You should always free the error string returned to you.
+
+NOTE: After calling a parse function, you should always check for errors.
+
 Avoiding Memory Leaks
 ^^^^^^^^^^^^^^^^^^^^^
 When you're done with the 'supernode' structure, you should free it using this
@@ -123,6 +147,15 @@ function.
 --------------------------------------------------------------------------------
 void keyval_node_free_all(struct keyval_node * head);
 --------------------------------------------------------------------------------
+
+Getting Node Names
+^^^^^^^^^^^^^^^^^^
+If you've acquired a node, you can get its name using the following function.
+--------------------------------------------------------------------------------
+char * keyval_node_get_name(struct keyval_node * node);
+--------------------------------------------------------------------------------
+The function will return NULL if a node has no name. Always remember to free
+the result.
 
 Navigating a Node
 ^^^^^^^^^^^^^^^^^
@@ -140,7 +173,7 @@ For example, suppose your configuration file was as follows.
 --------------------------------------------------------------------------------
 student {
 	name = Andrew
-	gpa = 0.337
+	gpa = 0.1337
 }
 
 student {
@@ -161,7 +194,8 @@ while ((student = keyval_node_find(student, "student"))) {
 keyval_node_free_all(students);
 --------------------------------------------------------------------------------
 NOTE: Error checking is omitted in the above example for clarity. You would run
-      into difficulty if there was a `student` section with no `name` field.
+      into difficulty if there was a `student` section with no `name` field or
+      if a parse error was encountered.
 
 NOTE: In the above example, we have used a new function,
       `keyval_node_get_value_string`.
