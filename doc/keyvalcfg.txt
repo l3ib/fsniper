@@ -132,6 +132,29 @@ char * keyval_get_error(void);
 The error string includes section and line information that will help fix the
 error.
 
+Here's a broken configuration file.
+--------------------------------------------------------------------------------
+a = 
+b = 
+z = 3
+ω =
+
+section {
+	james =
+--------------------------------------------------------------------------------
+The following error string is generated.
+--------------------------------------------------------------------------------
+keyvalcfg: error: expected a value after `a =`
+keyvalcfg: (near line 1)
+keyvalcfg: error: expected a value after `b =`
+keyvalcfg: (near line 2)
+keyvalcfg: error: expected a value after `ω =`
+keyvalcfg: (near line 4)
+keyvalcfg: error: expected a value after `james =` in section `section`
+keyvalcfg: (near line 7)
+keyvalcfg: error: section `section` never closed (missing `}`)
+--------------------------------------------------------------------------------
+
 It is almost always a good idea to somehow get this error string to the user.
 A reasonable way of doing this is to print to standard error, or, if your
 program has a gui, popping up an error dialog.

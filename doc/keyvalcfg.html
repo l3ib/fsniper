@@ -448,6 +448,30 @@ char * keyval_get_error(void);</tt></pre>
 </div></div>
 <div class="para"><p>The error string includes section and line information that will help fix the
 error.</p></div>
+<div class="para"><p>Here's a broken configuration file.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>a =
+b =
+z = 3
+ω =
+
+section {
+        james =</tt></pre>
+</div></div>
+<div class="para"><p>The following error string is generated.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>keyvalcfg: error: expected a value after `a =`
+keyvalcfg: (near line 1)
+keyvalcfg: error: expected a value after `b =`
+keyvalcfg: (near line 2)
+keyvalcfg: error: expected a value after `ω =`
+keyvalcfg: (near line 4)
+keyvalcfg: error: expected a value after `james =` in section `section`
+keyvalcfg: (near line 7)
+keyvalcfg: error: section `section` never closed (missing `}`)</tt></pre>
+</div></div>
 <div class="para"><p>It is almost always a good idea to somehow get this error string to the user.
 A reasonable way of doing this is to print to standard error, or, if your
 program has a gui, popping up an error dialog.</p></div>
@@ -622,7 +646,7 @@ unsigned char keyval_write(struct keyval_node * head, const char * filename);</t
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2007-11-23 13:58:53 EDT
+Last updated 2007-11-23 14:02:39 EDT
 </div>
 </div>
 </body>
