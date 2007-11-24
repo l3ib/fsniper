@@ -57,6 +57,15 @@ unsigned char keyval_write(struct keyval_node * head, const char * filename);
 /* gets the name of a node. */
 char * keyval_node_get_name(struct keyval_node * node);
 
+/* gets any comment associated with a node. */
+char * keyval_node_get_comment(struct keyval_node * node);
+
+/* gets the children of a node. */
+struct keyval_node * keyval_node_get_children(struct keyval_node * node);
+
+/* gets the next node in a linked list. */
+struct keyval_node * keyval_node_get_next(struct keyval_node * node);
+
 /* finds the first keyval_node with name 'name' in a linked list.
  * returns NULL on failure. note that this does not check children. */
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);

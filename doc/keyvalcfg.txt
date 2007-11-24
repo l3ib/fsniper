@@ -199,8 +199,30 @@ the result.
 
 Navigating a Node
 ^^^^^^^^^^^^^^^^^
-It may be wise to use the data returned to you by the parser. The principal
-node navigation function is:
+Getting Children
+++++++++++++++++
+The following function will give you the first child node of a node. Since
+children are arranged in a linked list, this allows you to access all children.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node * keyval_node_get_children(struct keyval_node * node);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Of course, it returns `NULL` on failure.
+
+List Traversal
+++++++++++++++
+If you'd like to get the next element in a linked list of nodes, you can call
+this function. It will return NULL if there are no more elements.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node * keyval_node_get_next(struct keyval_node * node);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Finding a Node by Name
+++++++++++++++++++++++
+The principal node navigation function is:
 
 [c]
 code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -229,9 +251,9 @@ You could easily print all student names using some code like:
 [c]
 code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct keyval_node * students = keyval_parse_file("students.cfg");
-struct keyval_node * student = students->children;
+struct keyval_node * student = keyval_node_get_children(students);
 while ((student = keyval_node_find(student, "student"))) {
-	char * name = keyval_node_get_value_string(keyval_node_find(student->children, "name"));
+	char * name = keyval_node_get_value_string(keyval_node_find(keyval_node_get_children(student), "name"));
 	printf("%s\n", name);
 	free(name);
 }

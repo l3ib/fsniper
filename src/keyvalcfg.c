@@ -54,6 +54,19 @@ char * keyval_node_get_name(struct keyval_node * node) {
 	return strdup(node->name);
 }
 
+char * keyval_node_get_comment(struct keyval_node * node) {
+	if (!node->comment) return NULL;
+	return strdup(node->comment);
+}
+
+struct keyval_node * keyval_node_get_children(struct keyval_node * node) {
+	return node->children;
+}
+
+struct keyval_node * keyval_node_get_next(struct keyval_node * node) {
+	return node->next;
+}
+
 void keyval_node_free_all(struct keyval_node * node) {
 	/* free will do nothing if these are null */
 	free(node->name);
