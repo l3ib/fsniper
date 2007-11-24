@@ -320,12 +320,13 @@ plain text configuration files from the C programming language.</p></div>
 <h2 id="_configuration_file_syntax">Configuration File Syntax</h2>
 <div class="sectionbody">
 <h3 id="first-example">A First Example</h3><div style="clear:left"></div>
-<div class="listingblock">
+<div class="literalblock">
+<div class="title">Sample Configuration File</div>
 <div class="content">
-<pre><tt>rationals {
-        # i couldn't come up with anything more clever than these...
+<pre><tt>rationals { <b>(1)</b>
+        # i couldn't come up with anything more clever than these... <b>(2)</b>
         zero = 0
-        unity = 1
+        unity = 1 <b>(3)</b>
 }
 
 irrationals {
@@ -338,26 +339,52 @@ irrationals {
 }
 
 # some simple lists
-odd numbers = [1, 3, 5, 7, \
+even numbers = [2, 4, 6, 8, 10, ...] <b>(4)</b>
+odd numbers = [1, 3, 5, 7, \ <b>(5)</b>
                9, 11, ...]
-even numbers = [2, 4, 6, 8, 10, ...]
-
 # a sample boolean
 this parser rocks = true # haha, sure</tt></pre>
 </div></div>
+<div class="colist"><ol>
+<li>
+<p>
+A section, <tt>rationals</tt>, is opened.
+</p>
+</li>
+<li>
+<p>
+A comment.
+</p>
+</li>
+<li>
+<p>
+<tt>unity</tt> is set to 1.
+</p>
+</li>
+<li>
+<p>
+A list is declared.
+</p>
+</li>
+<li>
+<p>
+A <tt>\</tt> indicates that the value is continued on the next line.
+</p>
+</li>
+</ol></div>
 <h3 id="_analysis">Analysis</h3><div style="clear:left"></div>
 <div class="para"><p>The above example illustrates several important features:</p></div>
 <div class="ilist"><ul>
 <li>
 <p>
 Sections are opened and closed using curly braces, <tt>{</tt> and <tt>}</tt>, and can
-          contain other sections.
+         contain other sections.
 </p>
 </li>
 <li>
 <p>
 Comments are started using the <tt>#</tt> character and continue until the end of
-          the line.
+         the line.
 </p>
 </li>
 <li>
@@ -368,14 +395,14 @@ Key-value pairs are specified using the syntax <tt>key = value</tt>.
 <li>
 <p>
 Lists begin with <tt>[</tt> and end with <tt>]</tt>. Their values are separated by <tt>,</tt>
-          characters.
+         characters.
 </p>
 </li>
 <li>
 <p>
 If the last non-space character on a line is a <tt>\</tt>, the parser will pretend
-          that no newline exists. This allows one to span long values across multiple
-          lines.
+         that no newline exists. This allows one to span long values across multiple
+         lines.
 </p>
 </li>
 </ul></div>
@@ -391,22 +418,22 @@ is for you. Fear not, for the parser is relatively easy to use.</p></div>
 represent a node is <tt>struct keyval_node</tt>. The structure definition follows.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>struct keyval_node {
-        /* the name of the key or section. can be NULL. */
-        char * name;
+<pre><tt><strong>struct</strong> keyval_node {
+<i>        /* the name of the key or section. can be NULL. */</i>
+        <strong>char</strong> * name;
 
-        /* if this is a simple key-value pair, this contains the value. if this is
-         * a section or just a comment, the value is NULL. */
-        char * value;
+<i>        /* if this is a simple key-value pair, this contains the value. if this is</i>
+<i>         * a section or just a comment, the value is NULL. */</i>
+        <strong>char</strong> * value;
 
-        /* any comment associated with this node. the whole node could be just
-         * a comment!*/
-        char * comment;
+<i>        /* any comment associated with this node. the whole node could be just</i>
+<i>         * a comment!*/</i>
+        <strong>char</strong> * comment;
 
-        /* self explanatory, can be null if appropriate */
-        struct keyval_node * children;
-        struct keyval_node * head;
-        struct keyval_node * next;
+<i>        /* self explanatory, can be null if appropriate */</i>
+        <strong>struct</strong> keyval_node * children;
+        <strong>struct</strong> keyval_node * head;
+        <strong>struct</strong> keyval_node * next;
 };</tt></pre>
 </div></div>
 <div class="para"><p>Note that <tt>struct keyval_node</tt> is a <em>linked list</em> type of structure. Each node
@@ -427,8 +454,8 @@ connection to the <tt>irrationals</tt> node.</p></div>
 thing.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>struct keyval_node * keyval_parse_file(const char * filename);
-struct keyval_node * keyval_parse_string(const char * data);</tt></pre>
+<pre><tt><strong>struct</strong> keyval_node * keyval_parse_file(<strong>const</strong> <strong>char</strong> * filename);
+<strong>struct</strong> keyval_node * keyval_parse_string(<strong>const</strong> <strong>char</strong> * data);</tt></pre>
 </div></div>
 <div class="para"><p>The first one takes a file name and returns the parsed node structure. The
 second one takes a string of data (perhaps the contents of a file) and returns
@@ -441,10 +468,10 @@ errors. The following function returns an error string or <tt>NULL</tt> if there
 no errors.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>/* returns the error string or NULL if no error occurred. the internal error
- * condition will be reset once this is called. */
-/* it's up to you to free the return value. */
-char * keyval_get_error(void);</tt></pre>
+<pre><tt><i>/* returns the error string or NULL if no error occurred. the internal error</i>
+<i> * condition will be reset once this is called. */</i>
+<i>/* it's up to you to free the return value. */</i>
+<strong>char</strong> * keyval_get_error(<strong>void</strong>);</tt></pre>
 </div></div>
 <div class="para"><p>The error string includes section and line information that will help fix the
 error.</p></div>
@@ -496,13 +523,13 @@ program has a gui, popping up an error dialog.</p></div>
 function.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>void keyval_node_free_all(struct keyval_node * head);</tt></pre>
+<pre><tt><strong>void</strong> keyval_node_free_all(<strong>struct</strong> keyval_node * head);</tt></pre>
 </div></div>
 <h4 id="_getting_node_names">Getting Node Names</h4>
 <div class="para"><p>If you've acquired a node, you can get its name using the following function.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>char * keyval_node_get_name(struct keyval_node * node);</tt></pre>
+<pre><tt><strong>char</strong> * keyval_node_get_name(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
 <div class="para"><p>The function will return NULL if a node has no name. Always remember to free
 the result.</p></div>
@@ -511,7 +538,7 @@ the result.</p></div>
 node navigation function is:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);</tt></pre>
+<pre><tt><strong>struct</strong> keyval_node * keyval_node_find(<strong>struct</strong> keyval_node * head, <strong>char</strong> * name);</tt></pre>
 </div></div>
 <div class="para"><p>This function will traverse a linked list of nodes and return the first one
 named <tt>name</tt>. If no such node is found, it returns NULL. You can use this
@@ -533,10 +560,10 @@ student {
 <div class="para"><p>You could easily print all student names using some code like:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>struct keyval_node * students = keyval_parse_file("students.cfg");
-struct keyval_node * student = students-&gt;children;
-while ((student = keyval_node_find(student, "student"))) {
-        char * name = keyval_node_get_value_string(keyval_node_find(student-&gt;children, "name"));
+<pre><tt><strong>struct</strong> keyval_node * students = keyval_parse_file("students.cfg");
+<strong>struct</strong> keyval_node * student = students-&gt;children;
+<strong>while</strong> ((student = keyval_node_find(student, "student"))) {
+        <strong>char</strong> * name = keyval_node_get_value_string(keyval_node_find(student-&gt;children, "name"));
         printf("%s\n", name);
         free(name);
 }
@@ -566,7 +593,7 @@ keyval_node_free_all(students);</tt></pre>
 <div class="para"><p>You can find out the type of a <tt>node</tt>'s <tt>value</tt> using the following.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>enum keyval_value_type {
+<pre><tt><strong>enum</strong> keyval_value_type {
         KEYVAL_TYPE_NONE,
         KEYVAL_TYPE_BOOL,
         KEYVAL_TYPE_STRING,
@@ -575,8 +602,8 @@ keyval_node_free_all(students);</tt></pre>
         KEYVAL_TYPE_LIST
 };
 
-/* determines the value type of a node. */
-enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node);</tt></pre>
+<i>/* determines the value type of a node. */</i>
+<strong>enum</strong> keyval_value_type keyval_node_get_value_type(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
 <div class="para"><p>The possible return values for <tt>keyval_node_get_value_type</tt> are enumerated in
 <tt>enum keyval_value_type</tt>.</p></div>
@@ -602,10 +629,10 @@ The value is some variation of <tt>true</tt> or <tt>false</tt> (case insensitive
 acquisition function.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>unsigned char keyval_node_get_value_bool(struct keyval_node * node);
-char * keyval_node_get_value_string(struct keyval_node * node);
-int keyval_node_get_value_int(struct keyval_node * node);
-double keyval_node_get_value_double(struct keyval_node * node);</tt></pre>
+<pre><tt><strong>unsigned</strong> <strong>char</strong> keyval_node_get_value_bool(<strong>struct</strong> keyval_node * node);
+<strong>char</strong> * keyval_node_get_value_string(<strong>struct</strong> keyval_node * node);
+<strong>int</strong> keyval_node_get_value_int(<strong>struct</strong> keyval_node * node);
+<strong>double</strong> keyval_node_get_value_double(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
 <div class="para"><p>These are self explanatory.
 NOTE: All string values returned to you by a function will need to be <tt>free()</tt> d
@@ -626,27 +653,30 @@ lists of strings. A convenience function is provided that allows the user to
 convert a list of strings into a multi-line string.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>/* joins elements of a list of strings, separating them by newline characters. */
-char * keyval_list_to_string(struct keyval_node * node);</tt></pre>
+<pre><tt><i>/* joins elements of a list of strings, separating them by newline characters. */</i>
+<strong>char</strong> * keyval_list_to_string(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
-<h3 id="_using_special_characters">Using Special Characters</h3><div style="clear:left"></div>
-<div class="para"><p>The <tt>#</tt>, <tt>{</tt>, and <tt>}</tt> characters are currently not allowed in keys or values.
-This issue may be addressed in the future, likely by allowing one to <em>escape</em>
-these characters using the <tt>\</tt> character.</p></div>
 <h3 id="_writing_configuration_files">Writing Configuration Files</h3><div style="clear:left"></div>
 <div class="para"><p>Writing configuration files is straightforward. It is up to you to construct a
 well-formed supernode structure (as described above). You can then write the
 result out to a file (or standard output) using the following function.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>/* writes the stuff out to a file. returns 1 on success, 0 on
- * failure. if filename is NULL, writes to stdout. */
-unsigned char keyval_write(struct keyval_node * head, const char * filename);</tt></pre>
+<pre><tt><i>/* writes the stuff out to a file. returns 1 on success, 0 on</i>
+<i> * failure. if filename is NULL, writes to stdout. */</i>
+<strong>unsigned</strong> <strong>char</strong> keyval_write(<strong>struct</strong> keyval_node * head, <strong>const</strong> <strong>char</strong> * filename);</tt></pre>
 </div></div>
+<h3 id="_using_special_characters">Using Special Characters</h3><div style="clear:left"></div>
+<div class="para"><p>The <tt>#</tt>, <tt>{</tt>, and <tt>}</tt> characters are currently not allowed in keys or values.
+This issue may be addressed in the future, likely by allowing one to <em>escape</em>
+these characters using the <tt>\</tt> character.</p></div>
+<h3 id="_playing_with_comments">Playing With Comments</h3><div style="clear:left"></div>
+<div class="para"><p>The parser preserves comments; comments are accessible using the <tt>comment</tt> field
+of a node.</p></div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2007-11-23 14:02:39 EDT
+Last updated 2007-11-23 19:15:12 EDT
 </div>
 </div>
 </body>

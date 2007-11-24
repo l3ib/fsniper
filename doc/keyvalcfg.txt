@@ -10,11 +10,13 @@ Configuration File Syntax
 [[first-example]]
 A First Example
 ~~~~~~~~~~~~~~~
---------------------------------------------------------------------------------
-rationals {
-	# i couldn't come up with anything more clever than these...
+
+.Sample Configuration File
+................................................................................
+rationals { <1>
+	# i couldn't come up with anything more clever than these... <2>
 	zero = 0
-	unity = 1
+	unity = 1 <3>
 }
 
 irrationals {
@@ -27,28 +29,33 @@ irrationals {
 }
 
 # some simple lists
-odd numbers = [1, 3, 5, 7, \
+even numbers = [2, 4, 6, 8, 10, ...] <4>
+odd numbers = [1, 3, 5, 7, \ <5>
                9, 11, ...]
-even numbers = [2, 4, 6, 8, 10, ...]
-
 # a sample boolean
 this parser rocks = true # haha, sure
---------------------------------------------------------------------------------
+................................................................................
+
+<1> A section, `rationals`, is opened.
+<2> A comment.
+<3> `unity` is set to 1.
+<4> A list is declared.
+<5> A `\` indicates that the value is continued on the next line.
 
 Analysis
 ~~~~~~~~
 The above example illustrates several important features:
 
-	- Sections are opened and closed using curly braces, `{` and `}`, and can
-	  contain other sections.
-	- Comments are started using the `#` character and continue until the end of
-	  the line.
-	- Key-value pairs are specified using the syntax `key = value`.
-	- Lists begin with `[` and end with `]`. Their values are separated by `,`
-	  characters.
-	- If the last non-space character on a line is a `\`, the parser will pretend
-	  that no newline exists. This allows one to span long values across multiple
-	  lines.
+ - Sections are opened and closed using curly braces, `{` and `}`, and can
+	 contain other sections.
+ - Comments are started using the `#` character and continue until the end of
+	 the line.
+ - Key-value pairs are specified using the syntax `key = value`.
+ - Lists begin with `[` and end with `]`. Their values are separated by `,`
+	 characters.
+ - If the last non-space character on a line is a `\`, the parser will pretend
+	 that no newline exists. This allows one to span long values across multiple
+	 lines.
 
 In fact, that was probably everything that someone interested only in reading
 and writing configuration files by hand (a non-developer) would need to know.
@@ -63,7 +70,8 @@ The Principal Node Structure
 Every section and key-value pair is termed a 'node'. The structure used to
 represent a node is `struct keyval_node`. The structure definition follows.
 
---------------------------------------------------------------------------------
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct keyval_node {
 	/* the name of the key or section. can be NULL. */
 	char * name;
@@ -81,7 +89,7 @@ struct keyval_node {
 	struct keyval_node * head;
 	struct keyval_node * next;
 };
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Note that `struct keyval_node` is a 'linked list' type of structure. Each node
 can have nodes before and after it, as well as 'child' nodes contained within
@@ -105,10 +113,13 @@ Parse Functions
 ^^^^^^^^^^^^^^^
 There are two parse functions available. Use these to have the parser do its
 thing.
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct keyval_node * keyval_parse_file(const char * filename);
 struct keyval_node * keyval_parse_string(const char * data);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 The first one takes a file name and returns the parsed node structure. The
 second one takes a string of data (perhaps the contents of a file) and returns
 the parsed node structure.
@@ -122,12 +133,13 @@ Since users might be writing configuration files, there are likely to be syntax
 errors. The following function returns an error string or `NULL` if there were
 no errors.
 
---------------------------------------------------------------------------------
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /* returns the error string or NULL if no error occurred. the internal error
  * condition will be reset once this is called. */
 /* it's up to you to free the return value. */
 char * keyval_get_error(void);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The error string includes section and line information that will help fix the
 error.
@@ -167,16 +179,21 @@ Avoiding Memory Leaks
 ^^^^^^^^^^^^^^^^^^^^^
 When you're done with the 'supernode' structure, you should free it using this
 function.
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void keyval_node_free_all(struct keyval_node * head);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Getting Node Names
 ^^^^^^^^^^^^^^^^^^
 If you've acquired a node, you can get its name using the following function.
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 char * keyval_node_get_name(struct keyval_node * node);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 The function will return NULL if a node has no name. Always remember to free
 the result.
 
@@ -184,9 +201,11 @@ Navigating a Node
 ^^^^^^^^^^^^^^^^^
 It may be wise to use the data returned to you by the parser. The principal
 node navigation function is:
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This function will traverse a linked list of nodes and return the first one
 named `name`. If no such node is found, it returns NULL. You can use this
 function to successively find (and do something with) all nodes with a specific
@@ -206,7 +225,9 @@ student {
 --------------------------------------------------------------------------------
 
 You could easily print all student names using some code like:
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct keyval_node * students = keyval_parse_file("students.cfg");
 struct keyval_node * student = students->children;
 while ((student = keyval_node_find(student, "student"))) {
@@ -215,7 +236,8 @@ while ((student = keyval_node_find(student, "student"))) {
 	free(name);
 }
 keyval_node_free_all(students);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 NOTE: Error checking is omitted in the above example for clarity. You would run
       into difficulty if there was a `student` section with no `name` field or
       if a parse error was encountered.
@@ -228,7 +250,9 @@ Getting Values
 Value Types
 ^^^^^^^^^^^
 You can find out the type of a `node`'s `value` using the following.
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 enum keyval_value_type {
 	KEYVAL_TYPE_NONE,
 	KEYVAL_TYPE_BOOL,
@@ -240,7 +264,7 @@ enum keyval_value_type {
 
 /* determines the value type of a node. */
 enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The possible return values for `keyval_node_get_value_type` are enumerated in
 `enum keyval_value_type`.
 
@@ -257,12 +281,15 @@ Value Acquisition
 ^^^^^^^^^^^^^^^^^
 Once you know what type of value you want, you can call the corresponding value
 acquisition function.
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 unsigned char keyval_node_get_value_bool(struct keyval_node * node);
 char * keyval_node_get_value_string(struct keyval_node * node);
 int keyval_node_get_value_int(struct keyval_node * node);
 double keyval_node_get_value_double(struct keyval_node * node);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 These are self explanatory.
 NOTE: All string values returned to you by a function will need to be `free()` d
       manually.
@@ -286,10 +313,25 @@ parser will not attempt to convert lists of strings to multi-line values.
 Upon writing, the parser will automatically convert multi-line values into
 lists of strings. A convenience function is provided that allows the user to
 convert a list of strings into a multi-line string.
---------------------------------------------------------------------------------
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /* joins elements of a list of strings, separating them by newline characters. */
 char * keyval_list_to_string(struct keyval_node * node);
---------------------------------------------------------------------------------
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Writing Configuration Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Writing configuration files is straightforward. It is up to you to construct a
+well-formed supernode structure (as described above). You can then write the
+result out to a file (or standard output) using the following function.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/* writes the stuff out to a file. returns 1 on success, 0 on
+ * failure. if filename is NULL, writes to stdout. */
+unsigned char keyval_write(struct keyval_node * head, const char * filename);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using Special Characters
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -297,13 +339,7 @@ The `#`, `{`, and `}` characters are currently not allowed in keys or values.
 This issue may be addressed in the future, likely by allowing one to 'escape'
 these characters using the `\` character.
 
-Writing Configuration Files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Writing configuration files is straightforward. It is up to you to construct a
-well-formed supernode structure (as described above). You can then write the
-result out to a file (or standard output) using the following function.
---------------------------------------------------------------------------------
-/* writes the stuff out to a file. returns 1 on success, 0 on
- * failure. if filename is NULL, writes to stdout. */
-unsigned char keyval_write(struct keyval_node * head, const char * filename);
---------------------------------------------------------------------------------
+Playing With Comments
+~~~~~~~~~~~~~~~~~~~~~
+The parser preserves comments; comments are accessible using the `comment` field
+of a node.
