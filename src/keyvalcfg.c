@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 #define PICESIZE 512
 
@@ -40,6 +41,24 @@ static void keyval_append_error(char * e) {
 	} else {
 		error = strdup(e);
 	}
+}
+
+static void keyval_append_error_va(const char * format, ...) {
+	char * e = malloc(100 * sizeof(char));
+	size_t r;
+
+	va_list ap;
+	va_start(ap, format);
+	
+	r = vsnprintf(e, 100, format, ap);
+	e = realloc(e, r + 1);
+	if (r > 99) {
+		/* we need to do this again */
+		r = vsnprintf(e, r + 1, format, ap);
+	}
+	va_end(ap);
+	keyval_append_error(e);
+	free(e);
 }
 
 char * keyval_get_error(void) {
@@ -108,6 +127,39 @@ char * sanitize_str(char * source, size_t n) {
 	/* copy the first n chars of source into ret */
 	ret = strncpy(ret, source, n);
 	ret[n] = '\0';
+
+	/* remove trailing whitespace */
+	len = skip_trailing_whitespace(ret);
+
+	if (len != n) {
+		ret = realloc(ret, len + 1);
+		ret[len] = '\0';
+	}
+
+	return ret;
+}
+
+/* returns a null-terminated string containing the first n characters of
+ * 'source', with trailing whitespace removed.
+ * this version skips the '\' character in a clever way. */
+char * sanitize_str_escape(char * source, size_t n) {
+	char * ret;
+	size_t len;
+	size_t i, j;
+	
+	if (n == 0) return 0;
+	
+	ret = calloc(n + 1, sizeof(char));
+
+	/* copy the first n chars of source into ret */
+
+	for (i = 0, j = 0; i < n; i++, j++) {
+		if (source[i] == '\\') {
+			/* bump i up by 1. */
+			i++;
+		}
+		ret[j] = source[i];
+	}
 
 	/* remove trailing whitespace */
 	len = skip_trailing_whitespace(ret);
@@ -194,7 +246,7 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		if (node->name) fprintf(file, "%s}\n", tabs);
 	} else {
 		if (node->name) {
-			fprintf(file, "%s%s = %s", tabs, node->name, node->value);
+			fprintf(file, "%s`%s` = `%s`", tabs, node->name, node->value);
 			if (node->comment) fprintf(file, " # %s", node->comment);
 		} else if (node->comment) fprintf(file, "%s# %s\n", tabs, node->comment);
 		fputc('\n', file);
@@ -203,14 +255,34 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 	if (depth) free(tabs);
 }
 
-unsigned char keyval_write(struct keyval_node * head, const char * filename) {
-	FILE * out;
+void keyval_node_write_debug(struct keyval_node * node, size_t depth) {
+	char * tabs = "";
+
+	if (depth) {
+		size_t count = depth;
+		tabs = calloc(depth, sizeof(char));
+		while (--count) strncat(tabs, "\t", 1);
+	}
 	
-	out = fopen(filename, "w");
-	if (!out) return 0; /* error */
+	if (node->name) printf("%sname: `%s`\n", tabs, node->name);
+	if (node->value) printf("%svalue: `%s`\n", tabs, node->value);
+	
+	if (node->children) keyval_node_write_debug(node->children, depth + 1);
+	if (node->next) keyval_node_write_debug(node->next, depth);
+
+	if (depth) free(tabs);
+}
+
+unsigned char keyval_write(struct keyval_node * head, const char * filename) {
+	FILE * out = stdout;
+	
+	if (filename) {
+		out = fopen(filename, "w");
+		if (!out) return 0; /* error */
+	}
 	
 	keyval_node_write(head, 0, out);
-	fclose(out);
+	if (filename) fclose(out);
 
 	return 1;
 }
@@ -272,11 +344,10 @@ char * strip_multiple_spaces(char * string) {
 
 	for (;;) {
 		if (IS_SPACE(*string)) {
-			if (*string == '\n') seen_space = 2;
-			else if (!seen_space) seen_space = 1;
+			seen_space = 1;
 		} else {
 			if (seen_space) {
-				result[len++] = (seen_space == 1) ? ' ' : '\n';
+				result[len++] = ' ';
 				seen_space = 0;
 			}
 
@@ -337,153 +408,223 @@ struct keyval_node * keyval_node_get_value_list(struct keyval_node * node) {
 	return list;
 }
 
+/* returns the number of digits in an unsigned integer */
+size_t digits(unsigned i) {
+	if (i / 10) return 1 + digits(i / 10);
+	return 1;
+}
 
 /* the parser. probably full of bugs. ph34r.
- * stops if it encounters } or end of string. */
+ * stops if it encounters } or end of string.
+ * returns NULL on failure. */
 struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * l) {
 	struct keyval_node * head = malloc(sizeof(struct keyval_node));
 	struct keyval_node * child = NULL; /* last child found */
 
 	char * data = *_data;
-	size_t line = l ? *l : 1;
+	size_t line = l ? *l : 0;
 
 	head->head = head;
 	head->name = head->value = head->comment = NULL;
 	head->children = head->next = NULL;
 
 	while (*data) {
-		size_t count = 0;
-		struct keyval_node * node;
 		char * name = NULL;
-		char type_key, type_value = 0;
+		char * comment = NULL;
+		char * value = NULL;
+
+		char type_key;
+		size_t count = 0;
+		unsigned char abort = 0;
+		
+		unsigned char abort_comment;
+		size_t count_comment = 0;
+		char * data_comment;
+		
+		struct keyval_node * node = NULL;
 
 		data = skip_leading_whitespace(data, &line);
-		
-		/* obscure bug lying in wait. i had it as data[count++] but the macro
-		 * expansion pwnt it. don't make the same mistake! */
-		while (1) {
-			if (IS_END_KEY(data[count])) {
-				break;
+
+		/* the key lasts until = or {
+		 * error out if encountered un-escaped '}'
+		 * escaping characters works like this: if you encounter a \, just skip the
+		 * next character [and turn the \ into a space.]
+		 */
+		while (!abort) {
+			switch (data[count]) {
+				case '\\':
+					count++; /* skip the next character */
+					break;
+				case '#':
+					/* the rest of the line is a comment... */
+					/* read it in... */
+					/* COMMENT */
+					count_comment = 0;
+					abort_comment = 0;
+					data_comment = skip_leading_whitespace_line(data + count + 1);
+					while (!abort_comment) {
+						size_t i;
+						switch (data_comment[count_comment]) {
+							case '\n':
+								comment = sanitize_str(data_comment, count_comment);
+								if (count == 0) {
+									goto comment_only;
+								}
+								/* need to make all comment data into spaces now. this helps
+								 * determine whether the file is malformed or this is just
+								 * a section header. */
+								for (i = count; i < count + count_comment; i++) {
+									data[i] = ' ';
+								}
+								abort_comment = 1;
+								break;
+							case '\0':
+								comment = sanitize_str(data_comment, count_comment);
+								if (count) {
+									/* ERROR */
+									/* not supposed to reach end of string... */
+									keyval_append_error_va("keyval: error: unexpected end of string on line %d\n", line);
+									goto abort_node;
+								} else {
+									comment_only:
+									node = malloc(sizeof(struct keyval_node));
+									node->children = NULL;
+									data += count_comment + 2;
+									goto done_node;
+								}
+								break;
+						}
+						count_comment++;
+					}
+					/*abort = 1;*/
+					break;
+				case '}':
+				case '\0':
+					/* only error out if this condition is met. otherwise we've just
+					 * reached the end of a section, and should leave. */
+					if (count) {
+						/* ERROR */
+						goto abort_node;
+					} else {
+						/* LEAVE */
+						goto leave;
+					}
+				case '=':
+					type_key = '=';
+					abort = 1;
+					break;
+				case '{':
+					type_key = '{';
+					abort = 1;
+					break;
+				case '\n':
+					keyval_append_error_va("keyval: error: unexpected end of string at line %d\n", ++line);
+					goto abort_node;
+					break;
+				default:
+					break;
 			}
 			count++;
 		}
 		
-		type_key = data[count];
+		/* now count stores the length of the key (or name), including trailing
+		 * whitespace and possibly multiple spaces inside */
 
-		if (type_key == '}') {
-			data += count + 1;
-			break;
+		if (!(count - 1)) {
+			keyval_append_error_va("keyval: error: stray `%c` on line %d\n", type_key, ++line);
+			goto abort_node;
 		}
+		name = sanitize_str_escape(data, count - 1);
+		
+		/* (we want to swallow the type character too) */
+		data += count + count_comment;
 
-		/* count now contains the length of the key + trailing whitespace... with
-		 * some offset */
-		if (type_key != '#') name = sanitize_str(data, count);
-		/* is this node just a key-value node or is it a section? */
-		if (type_key == '=' || type_key == '#') {
-			/* it's a key-value node. */
-			data = skip_leading_whitespace_line(data + count + 1);
+		/* depending on what character we ended at, we'll do different things. */
 
-			/* the value is all characters until some...*/
+		if (type_key == '{') {
+			/* open section. */
+			/* SECTION */
 
-			if ((type_key != '#') && ((*data == '\0') || (*data == '\n') || (*data == '#'))) {
-				/* malformed... expected a value, got end of line */
-				/* we want something like
-				 * keyvalcfg: error: expected a value after key = in section section
-				 */
-				char * e;
-				size_t len = strlen(name) +
-				             strlen("keyvalcfg: error: expected a value after ` =`\n") +
-				             strlen("keyvalcfg: (near line )\n") + 5 /* XXX: FIXED LINE NUMBER LENGTH */
-				             + 1;
-				if (sec_name) len += strlen(" in section") + strlen(sec_name);
-				e = malloc(len);
-				if (sec_name) {
-					snprintf(e, len, "keyvalcfg: error: expected a value after `%s =` in section `%s`\nkeyvalcfg: (near line %d)\n", name, sec_name, line);
-				} else {
-					snprintf(e, len, "keyvalcfg: error: expected a value after `%s =`\nkeyvalcfg: (near line %d)\n", name, line);
-				}
-				keyval_append_error(e);
-				free(e);
+			if (!(node = keyval_parse_node(&data, name, &line))) {
+				/* add 'from section'... to error message, and abort */
+				goto abort_node;
 			}
+			if (*data != '}') {
+				/* a section was never closed! error!! */
+				keyval_append_error_va("keyval: error: section `%s` never closed\n", name);
+				goto abort_node;
+			}
+			data += 1;
+		} else if (type_key == '=') {
+			/* read in the value. */
+			/* VALUE */
+			unsigned char comment_found = 0;
+			char * v;
 
+			node = malloc(sizeof(struct keyval_node));
+			node->children = NULL;
+
+			data = skip_leading_whitespace_line(data);
+
+			/* the value lasts until we reach a '#' or '\n', unless they've been
+			 * escaped. */
 			count = 0;
-			/* how many characters occur until end of line? */
-			if (type_key != '#') while (1) {
-				if (IS_END_VALUE(data[count])) {
-					/*printf("%c fails\n", data[count]);*/
-					/* XXX: check this */
-					if (data[count] == '\n') line++;
-					if (data[count - 1] != '\\') {
-						type_value = data[count];
-						break; /* stop unless literal */
-					}
-				} else {
-					/*printf("%c passes\n", data[count]);*/
+			abort = 0;
+			while (!abort) {
+				switch (data[count]) {
+					case '\\':
+						count++; /* skip the next character */
+						if (data[count] == '\n') line++; /* but update line count! */
+						break;
+					case '#':
+						/* read in the value, then the comment. */
+						if (count == 0) {
+							line++;
+							goto missing_value;
+						}
+						v = sanitize_str_escape(data, count);
+						value = strip_multiple_spaces(skip_leading_whitespace(v, NULL));
+						free(v);
+						data = skip_leading_whitespace_line(data + count + 1);
+						comment_found = 1;
+						count = 0;
+						break;
+					case '\n':
+						line++;
+					case '\0':
+						/* read in the value. */
+						if (comment_found) {
+							comment = sanitize_str(data, count);
+						} else {
+							if (count == 0) {
+								missing_value:
+								/* there was supposed to be a value but there isn't. error. */
+								keyval_append_error_va("keyval: error: expected value after `%s =` on line %d\n", name, line);
+								goto abort_node;
+							}
+							v = sanitize_str_escape(data, count);
+							value = strip_multiple_spaces(skip_leading_whitespace(v, NULL));
+							free(v);
+						}
+						abort = 1;
+						break;
 				}
 				count++;
 			}
-
-			node = malloc(sizeof(struct keyval_node));
-			node->value = count ? sanitize_str(data, count) : NULL;
-			node->next = node->children = NULL;
-
-			if (keyval_node_get_value_type(node) == KEYVAL_TYPE_LIST) {
-				node->children = keyval_node_get_value_list(node);
-				free(node->value);
-				node->value = NULL;
-			}
-
 			data += count;
-
-			if (type_key == '#' || type_value == '#') {
-				data = skip_leading_whitespace(data + ((type_value == '#') ? 1 : 0), &line);
-				count = 0;
-				/* there's a comment to be made here. */
-				while (1) {
-					if (data[count] == '\n') break;
-					count++;
-				}
-
-				node->comment = sanitize_str(data, count);
-				data += count;
-			} else node->comment = NULL;
-
-			if (*data && (*data != '}')) data++;
-
-		} else if (data[count] == '{') {
-			/* it's a section. */
-			char * d = data + count + 1;
-			/* let us track error hierarchy. what's the current error state? */
-			char * e = error;
-			size_t e_len = error ? strlen(error) : 0;
-			line += 1;
-			node = keyval_parse_node(&d, name, &line);
-			if (sec_name && ((error != e) || ((error) && (strlen(error) != e_len)))) {
-				/* something went wrong in there. */
-				e = malloc(strlen(sec_name ? sec_name : "(none)") +
-				           strlen("keyvalcfg: (in section ``)\n") + 1);
-				sprintf(e, "keyvalcfg: (in section `%s`)\n", sec_name ? sec_name : "(none)");
-				keyval_append_error(e);
-				free(e);
-			}
-			if (d[-1] != '}') {
-				/* something went wrong. malformed config file. */
-				/* ERROR */
-				char * e = malloc(strlen(name) +
-				                  strlen("keyvalcfg: error: section `` never closed (missing `}`)")
-				                  + 2);
-				sprintf(e, "keyvalcfg: error: section `%s` never closed (missing `}`)\n", name);
-				keyval_append_error(e);
-				free(e);
-			}
-			data = d;
-		} else {
-			/* stop. */
-			break;
 		}
 
-		node->name = name;
+		done_node:
 
+		node->name = name;
+		node->value = value;
+		node->comment = comment;
+		node->next = NULL;
+		
+		if (node->value) {
+			node->children = keyval_node_get_value_list(node);
+		}
+		
 		if (child) {
 			child->next = node;
 		} else {
@@ -491,11 +632,27 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 		}
 
 		child = node;
+		continue;
+		
+		abort_node:
+		if (node) keyval_node_free_all(node);
+		free(name);
+		free(value);
+		free(comment);
+		goto error;
 	}
+	
+	leave:
 
 	*_data = data;
 	if (l) *l = line;
 	return head;
+	
+	error:
+	/* cleanup stuff when errors occur */
+	keyval_node_free_all(head);
+	if (sec_name) keyval_append_error_va("keyval: (in section `%s`)\n", sec_name);
+	return NULL;
 }
 
 struct keyval_node * keyval_parse_string(const char * data) {
@@ -504,15 +661,15 @@ struct keyval_node * keyval_parse_string(const char * data) {
 	char * data3;
 	
 	/* preprocessing */
-	collapse(data2);
-	data3 = strip_multiple_spaces(data2);
-	free(data2);
+	/*collapse(data2);*/
+	/*data3 = strip_multiple_spaces(data2, &lines);
+	free(data2);*/
 
-	/* to make sure that keyval_parse_node doesn't mess up our pointer to data3 */
-	data2 = data3;
-	head = keyval_parse_node(&data2, NULL, NULL);
+	/* to make sure that keyval_parse_node doesn't mess up our pointer to data2 */
+	data3 = data2;
+	head = keyval_parse_node(&data3, NULL, NULL);
 	
-	free(data3);
+	free(data2);
 
 	return head;
 }

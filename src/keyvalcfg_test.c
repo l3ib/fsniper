@@ -182,6 +182,7 @@ unsigned char test_sanitize_str(void) {
 
 struct keyval_node * keyval_parse_node(char ** data, size_t indents);
 void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file);
+void keyval_node_write_debug(struct keyval_node * node, size_t);
 int main(void) {
 	char * data = "lol { pice { x = 0\nno = u} } ham { burgled = true }";
 	char * s;
@@ -197,13 +198,13 @@ int main(void) {
 	putchar('\n');
 	test_sanitize_str();*/
 
-	node = keyval_parse_file("test/keyval_test2.cfg");
+	node = keyval_parse_file("test/keyval_test.cfg");
 	s = keyval_get_error();
 	if (s) {
 		printf("%s", s);
 		free(s);
 	}
-	keyval_write(node, "out.cfg");
+	if (node) keyval_write(node, 0);
 	/*
 	free(node->children->children->next->value);
 	node->children->children->next->value = strdup("haha\nlol\nhaha fhiuhef . . .   ");
@@ -213,7 +214,7 @@ int main(void) {
 	printf("string version: %s\n", s);
 	free(s);*/
 
-	keyval_node_free_all(node);
+	if (node) keyval_node_free_all(node);
 	
 	/*node = keyval_parse_string(data);
 	keyval_node_write(node, 0, stdout);
