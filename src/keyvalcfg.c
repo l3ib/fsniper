@@ -551,9 +551,10 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			}
 			if (*data != '}') {
 				/* a section was never closed! error!! */
-				keyval_append_error_va("keyval: error: section `%s` never closed\n", name);
+				keyval_append_error_va("keyval: error: section `%s` never closed near line %d\n", name, line);
 				goto abort_node;
 			}
+			/* make sure we don't read the '}' thinking it's our turn to close */
 			data += 1;
 		} else if (type_key == '=') {
 			/* read in the value. */
@@ -567,8 +568,8 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 
 			data = skip_leading_whitespace_line(data);
 
-			/* the value lasts until we reach a '#' or '\n', unless they've been
-			 * escaped. */
+			/* the value lasts until we reach a '#' or '}' or '\n', unless they've
+			 * been escaped. */
 			count = 0;
 			abort = 0;
 			while (!abort) {
@@ -580,7 +581,6 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 					case '#':
 						/* read in the value, then the comment. */
 						if (count == 0) {
-							line++;
 							goto missing_value;
 						}
 						v = sanitize_str_escape(data, count);
@@ -591,7 +591,8 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						count = 0;
 						break;
 					case '\n':
-						line++;
+						/*line++;*/
+					case '}':
 					case '\0':
 						/* read in the value. */
 						if (comment_found) {
@@ -600,7 +601,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 							if (count == 0) {
 								missing_value:
 								/* there was supposed to be a value but there isn't. error. */
-								keyval_append_error_va("keyval: error: expected value after `%s =` on line %d\n", name, line);
+								keyval_append_error_va("keyval: error: expected value after `%s =` on line %d\n", name, ++line);
 								goto abort_node;
 							}
 							v = sanitize_str_escape(data, count);
@@ -610,7 +611,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						abort = 1;
 						break;
 				}
-				count++;
+				if (!abort)	count++;
 			}
 			data += count;
 		}

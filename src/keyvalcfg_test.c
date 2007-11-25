@@ -184,7 +184,7 @@ struct keyval_node * keyval_parse_node(char ** data, size_t indents);
 void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file);
 void keyval_node_write_debug(struct keyval_node * node, size_t);
 int main(void) {
-	char * data = "lol { pice { x = 0\nno = u} } ham { burgled = true }";
+	char * data = "lol { pice { x = 0\nno = u }} ham { burgled =  true}\nx=";
 	char * s;
 	struct keyval_node * node;
 /*
@@ -198,7 +198,8 @@ int main(void) {
 	putchar('\n');
 	test_sanitize_str();*/
 
-	node = keyval_parse_file("test/keyval_test.cfg");
+	/*node = keyval_parse_file("test/keyval_test4.cfg");*/
+	node = keyval_parse_string(data);
 	s = keyval_get_error();
 	if (s) {
 		printf("%s", s);
