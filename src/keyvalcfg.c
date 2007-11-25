@@ -246,7 +246,7 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		if (node->name) fprintf(file, "%s}\n", tabs);
 	} else {
 		if (node->name) {
-			fprintf(file, "%s`%s` = `%s`", tabs, node->name, node->value);
+			fprintf(file, "%s%s = %s", tabs, node->name, node->value);
 			if (node->comment) fprintf(file, " # %s", node->comment);
 		} else if (node->comment) fprintf(file, "%s# %s\n", tabs, node->comment);
 		fputc('\n', file);
@@ -518,7 +518,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 					abort = 1;
 					break;
 				case '\n':
-					keyval_append_error_va("keyval: error: unexpected end of string at line %d\n", ++line);
+					keyval_append_error_va("keyval: error: unexpected end of line on line %d\n", ++line);
 					goto abort_node;
 					break;
 				default:
@@ -562,7 +562,8 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			char * v;
 
 			node = malloc(sizeof(struct keyval_node));
-			node->children = NULL;
+			node->name = node->value = node->comment = NULL;
+			node->children = node->next = NULL;
 
 			data = skip_leading_whitespace_line(data);
 
