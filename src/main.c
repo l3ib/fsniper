@@ -60,7 +60,7 @@ struct pipe_list
 
 struct pipe_list* pipe_list_head = NULL;
 struct pipe_list * pipe_list_remove(struct pipe_list * head,
-	struct pipe_list * element);
+																		struct pipe_list * element);
 
 /* frees memory.  called from more than one place because fork'd copies
  * still have globals hanging around before they are exited.
@@ -134,10 +134,18 @@ void handle_child_quit_signal(int signum)
 	exit(0);
 }
 
+void write_pid_file(char *pidfilename)
+{
+	FILE *pidfile;
+	pidfile = fopen(pidfilename, "w");
+	fprintf(pidfile, "%d", getpid());
+	fclose(pidfile);
+}
+
 /* deletes an element from the linked list and returns a pointer to the
  * next element. */
 struct pipe_list * pipe_list_remove(struct pipe_list * head,
-	struct pipe_list * element) {
+																		struct pipe_list * element) {
 
 	struct pipe_list * next = element->next;
 	struct pipe_list * prev;
@@ -152,16 +160,19 @@ struct pipe_list * pipe_list_remove(struct pipe_list * head,
 
 int main(int argc, char** argv)
 {
-	int ifd, len, i = 0, selectret = 0, maxfd, forkret, retryselect;
+	int ifd, len, i = 0, selectret = 0, maxfd, forkret, retryselect, pid;
 	char buf[BUF_LEN]; 
 	char *configdir;
 	char *configfile;
 	char *home;
 	char *pidfilename;
+	char *statusfilename;
+	char *statusbin;
 	char *error_str;
 	char *version_str = "sniper SVN";
 	char *pbuf;
 	FILE *pidfile;
+	FILE *statusfile;
 	DIR *dir;
 	fd_set set;
 	struct passwd *uid;
@@ -169,6 +180,7 @@ int main(int argc, char** argv)
 	struct argument *argument = argument_new();
 	struct pipe_list *pipe_list_cur;
 	struct pipe_list *pipe_list_tmp;
+	struct stat file_stat;
 
 	/* alloc pipe list */
 	pipe_list_head = malloc(sizeof(struct pipe_list));
@@ -265,9 +277,62 @@ int main(int argc, char** argv)
 	uid = getpwuid(getuid());
 	pidfilename = malloc(strlen("/tmp/sniper-") + strlen(uid->pw_name) + strlen(".pid") + 1);
 	sprintf(pidfilename, "/tmp/sniper-%s.pid", uid->pw_name);
-	pidfile = fopen(pidfilename, "w");
-	fprintf(pidfile, "%d", getpid());
-	fclose(pidfile);
+
+	if (stat(pidfilename, &file_stat) == 0) /* pidfile exists */
+	{
+		pidfile = fopen(pidfilename, "r");
+		
+		if (fscanf(pidfile, "%d", &pid) == 1) /* pidfile has a pid inside */
+		{
+			char *binaryname;
+			char *scanformat; 
+			if (binaryname = strrchr(argv[0], '/'))
+			{
+				binaryname++;
+			}
+			else
+			{
+				binaryname = argv[0];
+			}
+
+			scanformat = malloc(strlen("Name:   %") + strlen(binaryname) + strlen("s") + 1);
+			statusfilename = malloc(strlen("/proc/") + 6 + strlen("/status") + 1);
+			sprintf(statusfilename, "/proc/%d/status", pid);
+
+			if (stat(statusfilename, &file_stat) != 0) /* write pid file if the process no longer exists */
+			{
+				write_pid_file(pidfilename);
+			}
+			else /* process exists, so check owner and binary name */
+			{
+				statusfile = fopen(statusfilename, "r");
+				statusbin = malloc(strlen(binaryname) + 2); /* the binary name may start with "sniper" but be longer */
+				sprintf(scanformat, "Name:   %%%ds", strlen(binaryname) + 1);
+				fscanf(statusfile, scanformat, statusbin);
+				fclose(statusfile);
+				fclose(pidfile);
+				
+				if (strcmp(binaryname, statusbin) == 0 && file_stat.st_uid == getuid())
+					/* exit if the process is sniper and is owned by the current user */
+				{
+					handle_quit_signal(1);
+				}
+				else /* the pid file contains an old pid, one that isn't sniper, or one not owned by the current user */
+				{
+					write_pid_file(pidfilename);
+				}
+			}
+		}
+		else /* pidfile is invalid */
+		{
+			fclose(pidfile);
+			write_pid_file(pidfilename);
+		}
+	}
+	else /* the pidfile doesn't exist */
+	{
+		write_pid_file(pidfilename);
+	}
 	free(pidfilename);
 
 	/* add nodes to the inotify descriptor */
