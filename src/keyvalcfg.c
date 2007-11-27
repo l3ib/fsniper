@@ -422,7 +422,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 	struct keyval_node * child = NULL; /* last child found */
 
 	char * data = *_data;
-	size_t line = l ? *l : 0;
+	size_t line = l ? *l : 1;
 
 	head->head = head;
 	head->name = head->value = head->comment = NULL;
@@ -531,7 +531,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 		 * whitespace and possibly multiple spaces inside */
 
 		if (!(count - 1)) {
-			keyval_append_error_va("keyval: error: stray `%c` on line %d\n", type_key, ++line);
+			keyval_append_error_va("keyval: error: stray `%c` on line %d\n", type_key, line);
 			goto abort_node;
 		}
 		name = sanitize_str_escape(data, count - 1);
@@ -551,6 +551,8 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			}
 			if (*data != '}') {
 				/* a section was never closed! error!! */
+				/* we cannot exactly know the line here. there are newlines at the end
+				 * of blank lines. cannot be certain etc. CONFUSED?? */
 				keyval_append_error_va("keyval: error: section `%s` never closed near line %d\n", name, line);
 				goto abort_node;
 			}
@@ -591,7 +593,10 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						count = 0;
 						break;
 					case '\n':
-						/*line++;*/
+						/* only increment the line count if this value is not in error.
+						 * otherwise we would be saying that the error occurred on the
+						 * wrong line below. */
+						if (count) line++;
 					case '}':
 					case '\0':
 						/* read in the value. */
@@ -601,7 +606,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 							if (count == 0) {
 								missing_value:
 								/* there was supposed to be a value but there isn't. error. */
-								keyval_append_error_va("keyval: error: expected value after `%s =` on line %d\n", name, ++line);
+								keyval_append_error_va("keyval: error: expected value after `%s =` on line %d\n", name, line);
 								goto abort_node;
 							}
 							v = sanitize_str_escape(data, count);
@@ -609,6 +614,9 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 							free(v);
 						}
 						abort = 1;
+						/* don't double-count newlines... otherwise we'll send the newline
+						 * into the next iteration */
+						if (data[count] == '\n') count++;
 						break;
 				}
 				if (!abort)	count++;
