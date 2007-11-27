@@ -324,6 +324,7 @@ int main(int argc, char** argv)
 				statusbin = malloc(strlen(binaryname) + 2); /* the binary name may start with "sniper" but be longer */
 				sprintf(scanformat, "Name:   %%%ds", strlen(binaryname) + 1);
 				fscanf(statusfile, scanformat, statusbin);
+				free(statusfilename);
 				fclose(statusfile);
 				fclose(pidfile);
 				
