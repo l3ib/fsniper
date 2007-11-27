@@ -100,6 +100,30 @@ void free_all_globals()
 	free(pipe_list_head);
 }
 
+char *get_pid_filename()
+{
+	struct passwd *uid;
+	char *pidfilename;
+	uid = getpwuid(getuid());
+	pidfilename = malloc(strlen("/tmp/sniper-") + strlen(uid->pw_name) + strlen(".pid") + 1);
+	sprintf(pidfilename, "/tmp/sniper-%s.pid", uid->pw_name);
+	return pidfilename;
+}
+
+void write_pid_file(char *pidfilename)
+{
+	FILE *pidfile;
+	pidfile = fopen(pidfilename, "w");
+	fprintf(pidfile, "%d", getpid());
+	fclose(pidfile);
+}
+
+void remove_pid_file(char *pidfilename)
+{
+	remove(pidfilename);
+	free(pidfilename);
+}
+
 /* handler for any quit signal.  cleans up memory and exits gracefully. */
 void handle_quit_signal(int signum) 
 {
@@ -113,6 +137,8 @@ void handle_quit_signal(int signum)
 
 	/* shut down log */
 	log_close();
+
+	remove_pid_file(get_pid_filename());
 
 	/* return an error if there was one */
 	if (signum < 0)
@@ -132,14 +158,6 @@ void handle_child_signal()
 void handle_child_quit_signal(int signum)
 {
 	exit(0);
-}
-
-void write_pid_file(char *pidfilename)
-{
-	FILE *pidfile;
-	pidfile = fopen(pidfilename, "w");
-	fprintf(pidfile, "%d", getpid());
-	fclose(pidfile);
 }
 
 /* deletes an element from the linked list and returns a pointer to the
@@ -175,7 +193,6 @@ int main(int argc, char** argv)
 	FILE *statusfile;
 	DIR *dir;
 	fd_set set;
-	struct passwd *uid;
 	struct inotify_event *event;
 	struct argument *argument = argument_new();
 	struct pipe_list *pipe_list_cur;
@@ -274,9 +291,7 @@ int main(int argc, char** argv)
 	free(configfile);
 
 	/* create a pid file */
-	uid = getpwuid(getuid());
-	pidfilename = malloc(strlen("/tmp/sniper-") + strlen(uid->pw_name) + strlen(".pid") + 1);
-	sprintf(pidfilename, "/tmp/sniper-%s.pid", uid->pw_name);
+	pidfilename = get_pid_filename();
 
 	if (stat(pidfilename, &file_stat) == 0) /* pidfile exists */
 	{
@@ -286,7 +301,7 @@ int main(int argc, char** argv)
 		{
 			char *binaryname;
 			char *scanformat; 
-			if (binaryname = strrchr(argv[0], '/'))
+			if ((binaryname = strrchr(argv[0], '/')) != NULL)
 			{
 				binaryname++;
 			}
