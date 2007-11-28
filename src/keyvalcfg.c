@@ -418,15 +418,13 @@ size_t digits(unsigned i) {
  * stops if it encounters } or end of string.
  * returns NULL on failure. */
 struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * l) {
-	struct keyval_node * head = malloc(sizeof(struct keyval_node));
+	struct keyval_node * head = calloc(1, sizeof(struct keyval_node));
 	struct keyval_node * child = NULL; /* last child found */
 
 	char * data = *_data;
 	size_t line = l ? *l : 1;
 
 	head->head = head;
-	head->name = head->value = head->comment = NULL;
-	head->children = head->next = NULL;
 
 	while (*data) {
 		char * name = NULL;
@@ -487,8 +485,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 									goto abort_node;
 								} else {
 									comment_only:
-									node = malloc(sizeof(struct keyval_node));
-									node->children = NULL;
+									node = calloc(1, sizeof(struct keyval_node));
 									data += count_comment + 2;
 									goto done_node;
 								}
@@ -564,9 +561,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			unsigned char comment_found = 0;
 			char * v;
 
-			node = malloc(sizeof(struct keyval_node));
-			node->name = node->value = node->comment = NULL;
-			node->children = node->next = NULL;
+			node = calloc(1, sizeof(struct keyval_node));
 
 			data = skip_leading_whitespace_line(data);
 
@@ -629,7 +624,6 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 		node->name = name;
 		node->value = value;
 		node->comment = comment;
-		node->next = NULL;
 		
 		if (node->value) {
 			node->children = keyval_node_get_value_list(node);
@@ -702,6 +696,8 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 
 	node = keyval_parse_string(data);
 	free(data);
+
+	if (!node) keyval_append_error_va("keyvalcfg: in file `%s`\n", filename);
 
 	return node;
 }
