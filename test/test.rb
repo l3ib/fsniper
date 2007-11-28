@@ -2,7 +2,7 @@
 
 success = true
 
-Dir.entries('.').each do |entry|
+Dir.entries('.').sort.each do |entry|
 	next if entry =~ /^..?$/
 	next unless entry =~ /\.c$/
 	
@@ -25,7 +25,7 @@ Dir.entries('.').each do |entry|
 	
 	puts "\trunning... "
 	
-	unless system("#{File.dirname(__FILE__)}/#{entry}")
+	unless system("#{File.dirname(__FILE__)}/#{entry}", "#{entry}.cfg")
 		puts "\t\tfailed"
 		success = false
 		break

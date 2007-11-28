@@ -697,7 +697,7 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 	node = keyval_parse_string(data);
 	free(data);
 
-	if (!node) keyval_append_error_va("keyvalcfg: in file `%s`\n", filename);
+	if (!node) keyval_append_error_va("keyval: in file `%s`\n", filename);
 
 	return node;
 }

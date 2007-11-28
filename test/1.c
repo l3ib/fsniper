@@ -47,10 +47,15 @@ unsigned char check_rationals(struct keyval_node * cfg) {
 	return 0;
 }
 
-int main(void) {
+int main(int argc, char ** argv) {
 	struct keyval_node * cfg;
 
-	if (!(cfg = keyval_parse_file("1.cfg"))) {
+	if (argc == 1) {
+		fprintf(stderr, "what file am i testing?\n");
+		return 1;
+	}
+
+	if (!(cfg = keyval_parse_file(argv[1]))) {
 		char * error = keyval_get_error();
 		fprintf(stderr, "%s", error);
 		free(error);
