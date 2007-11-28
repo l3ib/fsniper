@@ -703,7 +703,7 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 }
 
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name) {
-	for (; head; head = head->next) {
+	for (head = head->children; head; head = head->next) {
 		if (!head->name) continue;
 		if (!strcmp(head->name, name)) return head;
 	}

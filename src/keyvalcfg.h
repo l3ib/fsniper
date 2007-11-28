@@ -66,8 +66,8 @@ struct keyval_node * keyval_node_get_children(struct keyval_node * node);
 /* gets the next node in a linked list. */
 struct keyval_node * keyval_node_get_next(struct keyval_node * node);
 
-/* finds the first keyval_node with name 'name' in a linked list.
- * returns NULL on failure. note that this does not check children. */
+/* finds the first keyval_node with name 'name' in the CHILDREN of head.
+ * returns NULL on failure. */
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
 
 /* joins elements of a list of strings, separating them by newline characters. */

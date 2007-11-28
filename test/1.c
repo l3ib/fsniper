@@ -8,8 +8,7 @@ unsigned char check_rationals(struct keyval_node * cfg) {
 	struct keyval_node * child;
 	char * comment;
 	
-	if (!(rationals = keyval_node_find(keyval_node_get_children(cfg),
-	                                   "rationals"))) return 0;
+	if (!(rationals = keyval_node_find(cfg, "rationals"))) return 0;
 
 	if (!(comment = keyval_node_get_comment(keyval_node_get_children(rationals)))) {
 		fprintf(stderr, "error: comment for `rationals` not found\n");
@@ -24,7 +23,7 @@ unsigned char check_rationals(struct keyval_node * cfg) {
 
 	free(comment);
 
-	child = keyval_node_find(rationals->children, "zero");
+	child = keyval_node_find(rationals, "zero");
 	if (!child) {
 		fprintf(stderr, "error: `zero` key not found in `rationals`\n");
 		return 1;
@@ -34,13 +33,37 @@ unsigned char check_rationals(struct keyval_node * cfg) {
 		return 1;
 	}
 	
-	child = keyval_node_find(rationals->children, "unity");
+	child = keyval_node_find(rationals, "unity");
 	if (!child) {
 		fprintf(stderr, "error: `unity` key not found in `rationals`\n");
 		return 1;
 	}
 	if (keyval_node_get_value_int(child) != 1) {
 		fprintf(stderr, "error: `unity` key has different value in `rationals`\n");
+		return 1;
+	}
+	
+	return 0;
+}
+
+unsigned char check_favourites(struct keyval_node * irrationals) {
+	struct keyval_node * child;
+	
+	if (!(child = keyval_node_find(irrationals, "favourites"))) {
+		fprintf(stderr, "error: `favourites` section not found in `irrationals`\n");
+		return 1;
+	}
+	
+	return 0;
+}
+
+unsigned char check_irrationals(struct keyval_node * cfg) {
+	struct keyval_node * child;
+
+	check_favourites(cfg);
+	
+	if (!(child = keyval_node_find(cfg, "pi"))) {
+		fprintf(stderr, "error: `pi` key not found in `irrationals`\n");
 		return 1;
 	}
 	
