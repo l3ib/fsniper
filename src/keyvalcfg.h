@@ -70,8 +70,8 @@ struct keyval_node * keyval_node_get_next(struct keyval_node * node);
  * returns NULL on failure. */
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
 
-/* joins elements of a list of strings, separating them by newline characters. */
-char * keyval_list_to_string(struct keyval_node * node);
+struct keyval_node * keyval_node_find_next(struct keyval_node * node,
+                                           char * name);
 
 enum keyval_value_type {
 	KEYVAL_TYPE_NONE,

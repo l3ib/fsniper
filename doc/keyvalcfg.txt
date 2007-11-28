@@ -53,9 +53,9 @@ The above example illustrates several important features:
  - Key-value pairs are specified using the syntax `key = value`.
  - Lists begin with `[` and end with `]`. Their values are separated by `,`
 	 characters.
- - If the last non-space character on a line is a `\`, the parser will pretend
-	 that no newline exists. This allows one to span long values across multiple
-	 lines.
+ - The '\' character is used as an escape character. Any character following
+   a '\' will be treated literally. In this instance, it is used to continue
+   the list on another line.
 
 In fact, that was probably everything that someone interested only in reading
 and writing configuration files by hand (a non-developer) would need to know.
@@ -125,7 +125,8 @@ second one takes a string of data (perhaps the contents of a file) and returns
 the parsed node structure.
 
 As an artifact of the parser, the returned node is a sort of 'supernode'. The
-only item of interest in this node is `children`.
+only item of interest in this node is `children`. However, due to the way that
+the node finding function works, this issue is usually transparent.
 
 Error Checking
 ^^^^^^^^^^^^^^
@@ -156,15 +157,7 @@ section {
 --------------------------------------------------------------------------------
 The following error string is generated.
 --------------------------------------------------------------------------------
-keyvalcfg: error: expected a value after `a =`
-keyvalcfg: (near line 1)
-keyvalcfg: error: expected a value after `b =`
-keyvalcfg: (near line 2)
-keyvalcfg: error: expected a value after `ω =`
-keyvalcfg: (near line 4)
-keyvalcfg: error: expected a value after `james =` in section `section`
-keyvalcfg: (near line 7)
-keyvalcfg: error: section `section` never closed (missing `}`)
+keyvalcfg: error: expected a value after `a =` on line 1
 --------------------------------------------------------------------------------
 
 It is almost always a good idea to somehow get this error string to the user.
@@ -222,16 +215,19 @@ code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Finding a Node by Name
 ++++++++++++++++++++++
-The principal node navigation function is:
+The principal node navigation functions are:
 
 [c]
 code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
+struct keyval_node * keyval_node_find_next(struct keyval_node * node,
+                                           char * name);
 code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This function will traverse a linked list of nodes and return the first one
-named `name`. If no such node is found, it returns NULL. You can use this
-function to successively find (and do something with) all nodes with a specific
-name.
+The first function will search the children of `head` for a node
+matching `name`. If no such node is found, it returns NULL.
+
+You can use the second function to successively find (and do something with)
+all nodes with a specific name. It is used to find the next match.
 
 For example, suppose your configuration file was as follows.
 --------------------------------------------------------------------------------
@@ -251,8 +247,8 @@ You could easily print all student names using some code like:
 [c]
 code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct keyval_node * students = keyval_parse_file("students.cfg");
-struct keyval_node * student = keyval_node_get_children(students);
-while ((student = keyval_node_find(student, "student"))) {
+struct keyval_node * student;
+for (student = keyval_node_find(students, "student"); student; student = keyval_node_find_next(student, "student")) {
 	char * name = keyval_node_get_value_string(keyval_node_find(keyval_node_get_children(student), "name"));
 	printf("%s\n", name);
 	free(name);
@@ -318,29 +314,29 @@ NOTE: All string values returned to you by a function will need to be `free()` d
 
 Handling Multi-line Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-You may come across situations where you wish to store string values containing
-newline characters. Clearly there is no direct way of storing such values in
-configuration files used by this parser, as they are newline-separated.
+Multi-line values are stored with a `\` at the end of the line, indicating that
+the newline character is to be taken literally. For example, consider the
+following string.
 
-Workaround
-^^^^^^^^^^
-The solution to the newline-containing value problem employed by the parser is
-to store the value as a list of strings, with each list element being one line
-of the value.
+--------------------------------------------------------------------------------
+there
+are
+many
+lines
+involved
+--------------------------------------------------------------------------------
 
-One drawback of this approach is that there is no way to
-unambiguously distinguish between a multi-line value and a list of strings. The
-parser will not attempt to convert lists of strings to multi-line values.
+This string should be stored in a configuration file as follows.
 
-Upon writing, the parser will automatically convert multi-line values into
-lists of strings. A convenience function is provided that allows the user to
-convert a list of strings into a multi-line string.
+--------------------------------------------------------------------------------
+bunch of lines = there\
+are\
+many\
+lines\
+involved
+--------------------------------------------------------------------------------
 
-[c]
-code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/* joins elements of a list of strings, separating them by newline characters. */
-char * keyval_list_to_string(struct keyval_node * node);
-code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The file-writing component of the parser will automatically do this for you.
 
 Writing Configuration Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

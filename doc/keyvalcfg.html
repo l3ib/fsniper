@@ -400,9 +400,9 @@ Lists begin with <tt>[</tt> and end with <tt>]</tt>. Their values are separated 
 </li>
 <li>
 <p>
-If the last non-space character on a line is a <tt>\</tt>, the parser will pretend
-         that no newline exists. This allows one to span long values across multiple
-         lines.
+The <em>\</em> character is used as an escape character. Any character following
+   a <em>\</em> will be treated literally. In this instance, it is used to continue
+   the list on another line.
 </p>
 </li>
 </ul></div>
@@ -461,7 +461,8 @@ thing.</p></div>
 second one takes a string of data (perhaps the contents of a file) and returns
 the parsed node structure.</p></div>
 <div class="para"><p>As an artifact of the parser, the returned node is a sort of <em>supernode</em>. The
-only item of interest in this node is <tt>children</tt>.</p></div>
+only item of interest in this node is <tt>children</tt>. However, due to the way that
+the node finding function works, this issue is usually transparent.</p></div>
 <h4 id="_error_checking">Error Checking</h4>
 <div class="para"><p>Since users might be writing configuration files, there are likely to be syntax
 errors. The following function returns an error string or <tt>NULL</tt> if there were
@@ -489,15 +490,7 @@ section {
 <div class="para"><p>The following error string is generated.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>keyvalcfg: error: expected a value after `a =`
-keyvalcfg: (near line 1)
-keyvalcfg: error: expected a value after `b =`
-keyvalcfg: (near line 2)
-keyvalcfg: error: expected a value after `ω =`
-keyvalcfg: (near line 4)
-keyvalcfg: error: expected a value after `james =` in section `section`
-keyvalcfg: (near line 7)
-keyvalcfg: error: section `section` never closed (missing `}`)</tt></pre>
+<pre><tt>keyvalcfg: error: expected a value after `a =` on line 1</tt></pre>
 </div></div>
 <div class="para"><p>It is almost always a good idea to somehow get this error string to the user.
 A reasonable way of doing this is to print to standard error, or, if your
@@ -550,15 +543,17 @@ this function. It will return NULL if there are no more elements.</p></div>
 <pre><tt><strong>struct</strong> keyval_node * keyval_node_get_next(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
 <h5 id="_finding_a_node_by_name">Finding a Node by Name</h5>
-<div class="para"><p>The principal node navigation function is:</p></div>
+<div class="para"><p>The principal node navigation functions are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt><strong>struct</strong> keyval_node * keyval_node_find(<strong>struct</strong> keyval_node * head, <strong>char</strong> * name);</tt></pre>
+<pre><tt><strong>struct</strong> keyval_node * keyval_node_find(<strong>struct</strong> keyval_node * head, <strong>char</strong> * name);
+<strong>struct</strong> keyval_node * keyval_node_find_next(<strong>struct</strong> keyval_node * node,
+                                           <strong>char</strong> * name);</tt></pre>
 </div></div>
-<div class="para"><p>This function will traverse a linked list of nodes and return the first one
-named <tt>name</tt>. If no such node is found, it returns NULL. You can use this
-function to successively find (and do something with) all nodes with a specific
-name.</p></div>
+<div class="para"><p>The first function will search the children of <tt>head</tt> for a node
+matching <tt>name</tt>. If no such node is found, it returns NULL.</p></div>
+<div class="para"><p>You can use the second function to successively find (and do something with)
+all nodes with a specific name. It is used to find the next match.</p></div>
 <div class="para"><p>For example, suppose your configuration file was as follows.</p></div>
 <div class="listingblock">
 <div class="content">
@@ -576,8 +571,8 @@ student {
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>struct</strong> keyval_node * students = keyval_parse_file("students.cfg");
-<strong>struct</strong> keyval_node * student = keyval_node_get_children(students);
-<strong>while</strong> ((student = keyval_node_find(student, "student"))) {
+<strong>struct</strong> keyval_node * student;
+<strong>for</strong> (student = keyval_node_find(students, "student"); student; student = keyval_node_find_next(student, "student")) {
         <strong>char</strong> * name = keyval_node_get_value_string(keyval_node_find(keyval_node_get_children(student), "name"));
         printf("%s\n", name);
         free(name);
@@ -653,24 +648,27 @@ acquisition function.</p></div>
 NOTE: All string values returned to you by a function will need to be <tt>free()</tt> d
       manually.</p></div>
 <h3 id="_handling_multi_line_values">Handling Multi-line Values</h3><div style="clear:left"></div>
-<div class="para"><p>You may come across situations where you wish to store string values containing
-newline characters. Clearly there is no direct way of storing such values in
-configuration files used by this parser, as they are newline-separated.</p></div>
-<h4 id="_workaround">Workaround</h4>
-<div class="para"><p>The solution to the newline-containing value problem employed by the parser is
-to store the value as a list of strings, with each list element being one line
-of the value.</p></div>
-<div class="para"><p>One drawback of this approach is that there is no way to
-unambiguously distinguish between a multi-line value and a list of strings. The
-parser will not attempt to convert lists of strings to multi-line values.</p></div>
-<div class="para"><p>Upon writing, the parser will automatically convert multi-line values into
-lists of strings. A convenience function is provided that allows the user to
-convert a list of strings into a multi-line string.</p></div>
+<div class="para"><p>Multi-line values are stored with a <tt>\</tt> at the end of the line, indicating that
+the newline character is to be taken literally. For example, consider the
+following string.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt><i>/* joins elements of a list of strings, separating them by newline characters. */</i>
-<strong>char</strong> * keyval_list_to_string(<strong>struct</strong> keyval_node * node);</tt></pre>
+<pre><tt>there
+are
+many
+lines
+involved</tt></pre>
 </div></div>
+<div class="para"><p>This string should be stored in a configuration file as follows.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>bunch of lines = there\
+are\
+many\
+lines\
+involved</tt></pre>
+</div></div>
+<div class="para"><p>The file-writing component of the parser will automatically do this for you.</p></div>
 <h3 id="_writing_configuration_files">Writing Configuration Files</h3><div style="clear:left"></div>
 <div class="para"><p>Writing configuration files is straightforward. It is up to you to construct a
 well-formed supernode structure (as described above). You can then write the
@@ -691,7 +689,7 @@ of a node.</p></div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2007-11-24 13:12:31 EDT
+Last updated 2007-11-27 21:29:40 EDT
 </div>
 </div>
 </body>

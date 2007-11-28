@@ -27,8 +27,6 @@
 #define PICESIZE 512
 
 #define IS_SPACE(c) (((c) == ' ') || ((c) == '\t') || ((c) == '\n'))
-#define IS_END_KEY(c) (((c) == '\0') || ((c) == '{') || ((c) == '=') || ((c) == '}') || ((c) == '#'))
-#define IS_END_VALUE(c) (((c) == '\0') || ((c) == '}') || ((c) == '\n') || ((c) == '#'))
 #define IS_END_LIST(c) (((c) == '\0') || ((c) == ']') || ((c) == ','))
 
 /* error string of craziness */
@@ -310,31 +308,6 @@ char * skip_leading_whitespace_line(char * data) {
 	return data;
 }
 
-/* collapses multi-line statements into one line. the '\' character is used to
- * indicate that a statement continues onto the next line. */
-void collapse(char * string) {
-	for (; *string; string++) {
-		if (*string == '\\') {
-			/* the dreaded \ has been encountered. first change this character into
-			 * a space. then change the end-of-line character into a space if there
-			 * is no 'data' between this \ and the end of the line. */
-			char * pos = string++;
-			
-			for (; *string; string++) {
-				if (*string == '\n') {
-					*string = ' ';
-					/* also change the \ into a space */
-					*pos = ' ';
-				} else if (*string != '\t' && *string != ' ') {
-					/* we have found a non-space character between the \ and the
-					 * end-of-line. abort mission. */
-					 break;
-				}
-			}
-		}
-	}
-}
-
 /* transforms sequences of more than one space into a single space. returns a
  * new string which must be freed. */
 char * strip_multiple_spaces(char * string) {
@@ -406,12 +379,6 @@ struct keyval_node * keyval_node_get_value_list(struct keyval_node * node) {
 	}
 	
 	return list;
-}
-
-/* returns the number of digits in an unsigned integer */
-size_t digits(unsigned i) {
-	if (i / 10) return 1 + digits(i / 10);
-	return 1;
 }
 
 /* the parser. probably full of bugs. ph34r.
@@ -664,11 +631,6 @@ struct keyval_node * keyval_parse_string(const char * data) {
 	char * data2 = strdup(data);
 	char * data3;
 	
-	/* preprocessing */
-	/*collapse(data2);*/
-	/*data3 = strip_multiple_spaces(data2, &lines);
-	free(data2);*/
-
 	/* to make sure that keyval_parse_node doesn't mess up our pointer to data2 */
 	data3 = data2;
 	head = keyval_parse_node(&data3, NULL, NULL);
@@ -703,9 +665,14 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 }
 
 struct keyval_node * keyval_node_find(struct keyval_node * head, char * name) {
-	for (head = head->children; head; head = head->next) {
-		if (!head->name) continue;
-		if (!strcmp(head->name, name)) return head;
+	return keyval_node_find_next(head->children, name);
+}
+
+struct keyval_node * keyval_node_find_next(struct keyval_node * node,
+                                           char * name) {
+	for (; node; node = node->next) {
+		if (!node->name) continue;
+		if (!strcmp(node->name, name)) return node;
 	}
 	
 	return NULL;
@@ -806,29 +773,4 @@ enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node) {
 	}
 	
 	return type;
-}
-
-char * keyval_list_to_string(struct keyval_node * node) {
-	struct keyval_node * element;
-	size_t len = 0;
-	char * string;
-	
-	if (keyval_node_get_value_type(node) != KEYVAL_TYPE_LIST) return NULL;
-	
-	/* pass one: count length */
-	for (element = node->children; element; element = element->next) {
-		len += strlen(element->value) + 1;
-	}
-	
-	/* len really is one more than the wanted length, but that turns out to be
-	 * fine since we need space for the trailing newline */
-	string = calloc(len, sizeof(char));
-	
-	/* pass two: concatenate! */
-	for (element = node->children; element; element = element->next) {
-		strcat(string, element->value);
-		if (element->next) strcat(string, "\n");
-	}
-
-	return string;
 }
