@@ -140,7 +140,7 @@ char * sanitize_str(char * source, size_t n) {
 /* returns a null-terminated string containing the first n characters of
  * 'source', with trailing whitespace removed.
  * this version skips the '\' character in a clever way. */
-char * sanitize_str_escape(char * source, size_t n) {
+char * sanitize_str_unescape(char * source, size_t n) {
 	char * ret;
 	size_t len;
 	size_t i, j;
@@ -170,44 +170,32 @@ char * sanitize_str_escape(char * source, size_t n) {
 	return ret;
 }
 
-/* takes a node whose value contains newlines and sanitizes it into a list
- * structure. */
-void keyval_node_clear_newlines(struct keyval_node * node) {
-	char * pos = NULL;
-	char * cur = node->value;
-	struct keyval_node * children = NULL;
+/* escapes #, }, and \n in a string by adding \ characters */
+static char * escape(char * string) {
+	/* allocate a buffer twice the size of the original string, plus one for the
+	 * null */
+	char * result;
+	size_t i, j, len;
 
-	if (!cur) return;
+	if (!string) return NULL;
 
-	while ((pos = strchr(cur, '\n'))) {
-		struct keyval_node * element = malloc(sizeof(struct keyval_node));
-		element->name = element->comment = NULL;
+	len = strlen(string);
+	result = calloc(1 + 2*len, sizeof(char));
 
-		element->head = children ? children->head : element;
-		element->next = element->children = NULL;
-
-		element->value = sanitize_str(cur, pos - cur);
-		cur = pos + 1;
-
-		if (children) children->next = element;
-		children = element;
+	for (i = 0, j = 0; i < len; i++, j++) {
+		switch (string[i]) {
+			case '\\':
+			case '#':
+			case '}':
+			case '\n':
+				result[j++] = '\\';
+			default:
+				result[j] = string[i];
+				break;
+		}
 	}
-	
-	if (cur != node->value) {
-		/* we have yet to handle the part after the last newline. */
-		struct keyval_node * element = malloc(sizeof(struct keyval_node));
-		element->name = element->comment = NULL;
 
-		element->head = children ? children->head : element;
-		element->next = element->children = NULL;
-
-		element->value = sanitize_str(cur, strlen(cur));
-		children->next = element;
-
-		free(node->value);
-		node->value = NULL;
-		node->children = children->head;
-	}
+	return realloc(result, 1+strlen(result));
 }
 
 void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
@@ -219,17 +207,15 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		while (--count) strncat(tabs, "\t", 1);
 	}
 	
-	/*printf("(%d)", keyval_node_get_value_type(node));*/
-	
-	keyval_node_clear_newlines(node);
-	
 	if (keyval_node_get_value_type(node) == KEYVAL_TYPE_LIST) {
 		/* yay, a list! */
 		struct keyval_node * child;
 		fprintf(file, "%s%s = [", tabs, node->name);
 
 		for (child = node->children; child; child = child->next) {
-			fprintf(file, "%s", child->value);
+			char * value = escape(child->value);
+			fprintf(file, "%s", value);
+			free(value);
 			if (child->next) fprintf(file, ", ");
 			else fprintf(file, "]\n");
 		}
@@ -244,7 +230,9 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 		if (node->name) fprintf(file, "%s}\n", tabs);
 	} else {
 		if (node->name) {
-			fprintf(file, "%s%s = %s", tabs, node->name, node->value);
+			char * value = escape(node->value);
+			fprintf(file, "%s%s = %s", tabs, node->name, value);
+			free(value);
 			if (node->comment) fprintf(file, " # %s", node->comment);
 		} else if (node->comment) fprintf(file, "%s# %s\n", tabs, node->comment);
 		fputc('\n', file);
@@ -317,10 +305,11 @@ char * strip_multiple_spaces(char * string) {
 
 	for (;;) {
 		if (IS_SPACE(*string)) {
-			seen_space = 1;
+			if (*string == '\n') seen_space = 2;
+			else if (!seen_space) seen_space = 1;
 		} else {
 			if (seen_space) {
-				result[len++] = ' ';
+				result[len++] = (seen_space == 2) ? '\n' : ' ';
 				seen_space = 0;
 			}
 
@@ -498,7 +487,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			keyval_append_error_va("keyval: error: stray `%c` on line %d\n", type_key, line);
 			goto abort_node;
 		}
-		name = sanitize_str_escape(data, count - 1);
+		name = sanitize_str_unescape(data, count - 1);
 		
 		/* (we want to swallow the type character too) */
 		data += count + count_comment;
@@ -547,7 +536,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						if (count == 0) {
 							goto missing_value;
 						}
-						v = sanitize_str_escape(data, count);
+						v = sanitize_str_unescape(data, count);
 						value = strip_multiple_spaces(skip_leading_whitespace(v, NULL));
 						free(v);
 						data = skip_leading_whitespace_line(data + count + 1);
@@ -571,7 +560,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 								keyval_append_error_va("keyval: error: expected value after `%s =` on line %d\n", name, line);
 								goto abort_node;
 							}
-							v = sanitize_str_escape(data, count);
+							v = sanitize_str_unescape(data, count);
 							value = strip_multiple_spaces(skip_leading_whitespace(v, NULL));
 							free(v);
 						}
