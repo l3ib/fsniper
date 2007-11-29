@@ -15,6 +15,11 @@ TESTS = [
 		:name => 'not closed error',
 		:source => ['not-closed.c', 'error.c'],
 		:input => 'not-closed.cfg'
+	},
+	{
+		:name => 'not closed error (#2)',
+		:source => ['not-closed-2.c', 'error.c'],
+		:input => 'not-closed-2.cfg'
 	}
 ]
 
