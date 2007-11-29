@@ -153,7 +153,7 @@ char * sanitize_str_unescape(char * source, size_t n) {
 
 	for (i = 0, j = 0; i < n; i++, j++) {
 		if (source[i] == '\\') {
-			/* bump i up by 1. */
+			/* bump i up by 1 */
 			i++;
 		}
 		ret[j] = source[i];
@@ -170,7 +170,6 @@ char * sanitize_str_unescape(char * source, size_t n) {
 	return ret;
 }
 
-/* escapes #, }, and \n in a string by adding \ characters */
 static char * escape(char * string) {
 	/* allocate a buffer twice the size of the original string, plus one for the
 	 * null */
@@ -188,6 +187,9 @@ static char * escape(char * string) {
 			case '#':
 			case '}':
 			case '\n':
+			case ',':
+			case ']':
+			case '[':
 				result[j++] = '\\';
 			default:
 				result[j] = string[i];
@@ -328,46 +330,60 @@ char * strip_multiple_spaces(char * string) {
 	return realloc(result, len + 1);
 }
 
-struct keyval_node * keyval_node_get_value_list(struct keyval_node * node) {
-	struct keyval_node * list = NULL;
-	struct keyval_node * last = list;
+struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
+	struct keyval_node * last = NULL;
 
-	char * value;
+	size_t line = *l;
+	char * data;
 
-	if (keyval_node_get_value_type(node) != KEYVAL_TYPE_LIST) return NULL;
-	
-	value = node->value + 1;
+	size_t count = 0;
 
-	while (*value != ']') {
-		struct keyval_node * element;
-		size_t count = 0;
+	data = *_data;
 
-		value = skip_leading_whitespace(value, NULL);
-		if (*value == ',') {
-			value++;
-			continue;
+	while (*data) {
+		unsigned char abort = 0;
+		struct keyval_node * cur = NULL;
+		char * value;
+		data = skip_leading_whitespace(data, &line);
+		count = 0;
+
+		while (!abort) {
+			switch (data[count]) {
+				case '\\':
+					count++;
+					break;
+				case ',':
+				case ']':
+					cur = calloc(1, sizeof(struct keyval_node));
+					value = sanitize_str_unescape(data, count);
+					cur->value = strip_multiple_spaces(skip_leading_whitespace(value,
+					                                   NULL));
+					free(value);
+					if (last) {
+						last->next = cur;
+						cur->head = last->head;
+					} else cur->head = cur;
+
+					last = cur;
+
+					if (data[count] == ']') {
+						data += count + 1;
+						goto leave;
+					}
+					data += count + 1;
+					abort = 1;
+					break;
+				default:
+					break;
+			}
+			if (!abort) count++;
 		}
-
-		while (!IS_END_LIST(value[count])) count++;
-		
-		/* count now contains the length of this list element. */
-		element = malloc(sizeof(struct keyval_node));
-		element->value = sanitize_str(value, count);
-		
-		/* make sure element has all irrelevant fields set to null */
-		element->name = element->comment = NULL;
-		element->children = element->next = NULL;
-		
-		if (last) {
-			element->head = last;
-			last->next = element;
-		} else element->head = list = element;
-		last = element;
-		
-		value += count;
 	}
-	
-	return list;
+
+	leave:
+	*_data = data;
+	*l = line;
+	return last->head;
 }
 
 /* the parser. probably full of bugs. ph34r.
@@ -527,6 +543,21 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			abort = 0;
 			while (!abort) {
 				switch (data[count]) {
+					case '[':
+						if (count == 0) {
+							char * d = data + 1;
+							/* this has to be a list. */
+							node->children = keyval_parse_list(&d, &line);
+							data = d;
+							if (data[-1] != ']') {
+								/* error. list improperly terminated. */
+								keyval_append_error_va("keyval: error: list `%s` not terminated near line %d\n", name, line);
+								goto abort_node;
+							}
+							data++;
+							abort = 1;
+						}
+						break;
 					case '\\':
 						count++; /* skip the next character */
 						if (data[count] == '\n') line++; /* but update line count! */
@@ -580,10 +611,6 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 		node->name = name;
 		node->value = value;
 		node->comment = comment;
-		
-		if (node->value) {
-			node->children = keyval_node_get_value_list(node);
-		}
 		
 		if (child) {
 			child->next = node;

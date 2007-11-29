@@ -12,8 +12,8 @@ Dir.entries('.').sort.each do |entry|
 	
 	puts "test ##{entry}\n\tcompiling..."
 	
-	unless system("gcc", "-Wall", "-Werror", "-pedantic", "-o", entry, "-I../src/",
-	       "#{entry}.c", "../src/keyvalcfg.c")
+	unless system("gcc", "-Wall", "-Werror", "-pedantic", "-g", "-g3", "-ggdb",
+                "-o", entry, "-I../src/", "#{entry}.c", "../src/keyvalcfg.c")
 		puts "\t\tfailed"
 		success = false
 		break
