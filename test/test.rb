@@ -1,6 +1,11 @@
 #!/usr/bin/ruby
 
 success = true
+valgrind = false
+
+if ARGV.include? '-v'
+	valgrind = true
+end
 
 Dir.entries('.').sort.each do |entry|
 	next if entry =~ /^..?$/
@@ -25,7 +30,11 @@ Dir.entries('.').sort.each do |entry|
 	
 	puts "\trunning... "
 	
-	unless system("#{File.dirname(__FILE__)}/#{entry}", "#{entry}.cfg")
+	command = valgrind ? ["valgrind", "--leak-check=full"] : []
+	command << "#{File.dirname(__FILE__)}/#{entry}"
+	command << "#{entry}.cfg"
+	
+	unless system(*command)
 		puts "\t\tfailed"
 		success = false
 		break

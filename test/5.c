@@ -21,6 +21,8 @@ int test_multiline(struct keyval_node * cfg) {
 		return 1;
 	}
 
+	free(cookie);
+
 	return 0;
 }
 
