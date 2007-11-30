@@ -219,8 +219,11 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 			fprintf(file, "%s", value);
 			free(value);
 			if (child->next) fprintf(file, ", ");
-			else fprintf(file, "]\n");
+			else fprintf(file, "]");
 		}
+
+		if (node->comment) fprintf(file, " # %s\n", node->comment);
+		else fprintf(file, "\n");
 	} else if (node->children) {
 		struct keyval_node * child = node->children;
 		if (node->name) fprintf(file, "%s%s {\n", tabs, node->name);
@@ -621,7 +624,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						 * otherwise we would be saying that the error occurred on the
 						 * wrong line below. */
 						if (count) line++;
-						if (list_found) {
+						if (list_found && !comment_found) {
 							abort = 1;
 							break;
 						}

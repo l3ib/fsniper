@@ -19,7 +19,8 @@ TESTS = [
 	{
 		:name => 'list-not-closed',
 		:source => 'common/error.c'
-	}
+	},
+	'list-comment'
 ]
 
 success = true
