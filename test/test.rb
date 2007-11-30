@@ -57,7 +57,9 @@ TESTS.each do |test|
 		success = false
 		break
 	end
-	
+
+	break unless success
+
 	puts "\t\tdone"
 	
 	# execute
@@ -76,8 +78,11 @@ TESTS.each do |test|
 			break
 		end
 
+		break unless success
+
 		puts "\t\t\tpassed"
 	end
+	break unless success
 end
 
 if success
