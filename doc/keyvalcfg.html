@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.2.3" />
+<meta name="generator" content="AsciiDoc 8.1.0" />
 <style type="text/css">
 /* Debug borders */
 p, li, dt, dd, div, pre, h1, h2, h3, h4, h5, h6 {
@@ -44,17 +44,12 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.3;
 }
 
-h1, h2, h3 {
+h1 {
   border-bottom: 2px solid silver;
 }
 h2 {
+  border-bottom: 2px solid silver;
   padding-top: 0.5em;
-}
-h3 {
-  float: left;
-}
-h3 + * {
-  clear: left;
 }
 
 div.sectionbody {
@@ -211,7 +206,7 @@ dd > *:first-child {
 ul, ol {
     list-style-position: outside;
 }
-div.olist2 ol {
+ol.olist2 {
   list-style-type: lower-alpha;
 }
 
@@ -229,9 +224,6 @@ tfoot {
 div.hlist {
   margin-top: 0.8em;
   margin-bottom: 0.8em;
-}
-div.hlist td {
-  padding-bottom: 5px;
 }
 td.hlist1 {
   vertical-align: top;
@@ -255,21 +247,12 @@ div#toctitle {
   margin-bottom: 0.1em;
 }
 
-div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel1, div.toclevel2 {
   margin-top: 0;
   margin-bottom: 0;
 }
 div.toclevel2 {
   margin-left: 2em;
-  font-size: 0.9em;
-}
-div.toclevel3 {
-  margin-left: 4em;
-  font-size: 0.9em;
-}
-div.toclevel4 {
-  margin-left: 6em;
-  font-size: 0.9em;
 }
 /* Workarounds for IE6's broken and incomplete CSS2. */
 
@@ -313,13 +296,13 @@ div#toc a:visited { color: blue; }
 </div>
 <div id="preamble">
 <div class="sectionbody">
-<div class="para"><p>The keyvalcfg configuration parser allows one to parse simple human-readable
-plain text configuration files from the C programming language.</p></div>
+<p>The keyvalcfg configuration parser allows one to parse simple human-readable
+plain text configuration files from the C programming language.</p>
 </div>
 </div>
-<h2 id="_configuration_file_syntax">Configuration File Syntax</h2>
+<h2>Configuration File Syntax</h2>
 <div class="sectionbody">
-<h3 id="first-example">A First Example</h3><div style="clear:left"></div>
+<h3><a id="first-example"></a>A First Example</h3>
 <div class="literalblock">
 <div class="title">Sample Configuration File</div>
 <div class="content">
@@ -340,12 +323,12 @@ irrationals {
 
 # some simple lists
 even numbers = [2, 4, 6, 8, 10, ...] <b>(4)</b>
-odd numbers = [1, 3, 5, 7, \ <b>(5)</b>
+odd numbers = [1, 3, 5, 7, <b>(5)</b>
                9, 11, ...]
 # a sample boolean
 this parser rocks = true # haha, sure</tt></pre>
 </div></div>
-<div class="colist"><ol>
+<ol>
 <li>
 <p>
 A section, <tt>rationals</tt>, is opened.
@@ -368,13 +351,14 @@ A list is declared.
 </li>
 <li>
 <p>
-A <tt>\</tt> indicates that the value is continued on the next line.
+A list can span multiple lines.
 </p>
 </li>
-</ol></div>
-<h3 id="_analysis">Analysis</h3><div style="clear:left"></div>
-<div class="para"><p>The above example illustrates several important features:</p></div>
-<div class="ilist"><ul>
+</ol>
+<h3>Analysis</h3>
+<p>The above example illustrates some of several important features. Here are
+the important ones:</p>
+<ul>
 <li>
 <p>
 Sections are opened and closed using curly braces, <tt>{</tt> and <tt>}</tt>, and can
@@ -395,27 +379,27 @@ Key-value pairs are specified using the syntax <tt>key = value</tt>.
 <li>
 <p>
 Lists begin with <tt>[</tt> and end with <tt>]</tt>. Their values are separated by <tt>,</tt>
-         characters.
+         characters. They can span multiple lines.
 </p>
 </li>
 <li>
 <p>
 The <em>\</em> character is used as an escape character. Any character following
-   a <em>\</em> will be treated literally. In this instance, it is used to continue
-   the list on another line.
+   a <em>\</em> will be treated literally. This can allow values to contain
+         newline characters and otherwise special characters.
 </p>
 </li>
-</ul></div>
-<div class="para"><p>In fact, that was probably everything that someone interested only in reading
-and writing configuration files by hand (a non-developer) would need to know.</p></div>
+</ul>
+<p>In fact, that was probably everything that someone interested only in reading
+and writing configuration files by hand (a non-developer) would need to know.</p>
 </div>
-<h2 id="_using_the_parser">Using the Parser</h2>
+<h2>Using the Parser</h2>
 <div class="sectionbody">
-<div class="para"><p>If you're interested in using the parser in one of your C programs, this section
-is for you. Fear not, for the parser is relatively easy to use.</p></div>
-<h3 id="_the_principal_node_structure">The Principal Node Structure</h3><div style="clear:left"></div>
-<div class="para"><p>Every section and key-value pair is termed a <em>node</em>. The structure used to
-represent a node is <tt>struct keyval_node</tt>. The structure definition follows.</p></div>
+<p>If you're interested in using the parser in one of your C programs, this section
+is for you. Fear not, for the parser is relatively easy to use.</p>
+<h3>The Principal Node Structure</h3>
+<p>Every section and key-value pair is termed a <em>node</em>. The structure used to
+represent a node is <tt>struct keyval_node</tt>. The structure definition follows.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>struct</strong> keyval_node {
@@ -436,37 +420,37 @@ represent a node is <tt>struct keyval_node</tt>. The structure definition follow
         <strong>struct</strong> keyval_node * next;
 };</tt></pre>
 </div></div>
-<div class="para"><p>Note that <tt>struct keyval_node</tt> is a <em>linked list</em> type of structure. Each node
+<p>Note that <tt>struct keyval_node</tt> is a <em>linked list</em> type of structure. Each node
 can have nodes before and after it, as well as <em>child</em> nodes contained within
-it.</p></div>
-<div class="para"><p>Consider the <tt>irrationals</tt> section in our <a href="#first-example">first example</a>. This
+it.</p>
+<p>Consider the <tt>irrationals</tt> section in our <a href="#first-example">first example</a>. This
 section is represented as a <tt>struct keyval_node</tt> with three child nodes, namely
 <tt>pi</tt>, <tt>root two</tt>, and <tt>favourites</tt>. Each of these three child nodes is a
 <tt>struct keyval_node</tt> in its own right. However, <tt>pi</tt> and <tt>root two</tt> have only
-<tt>value</tt> fields and no children.</p></div>
-<div class="para"><p>To elaborate on the linked-list nature of the node structure, the <tt>head</tt> of the
+<tt>value</tt> fields and no children.</p>
+<p>To elaborate on the linked-list nature of the node structure, the <tt>head</tt> of the
 <tt>favourites</tt> node is the <tt>pi</tt> node. The <tt>next</tt> field of the <tt>pi</tt> node is
 occupied by <tt>root two</tt>. Note that the <tt>favourites</tt> node knows nothing about its
-connection to the <tt>irrationals</tt> node.</p></div>
-<h3 id="_getting_your_hands_dirty">Getting Your Hands Dirty</h3><div style="clear:left"></div>
-<h4 id="_parse_functions">Parse Functions</h4>
-<div class="para"><p>There are two parse functions available. Use these to have the parser do its
-thing.</p></div>
+connection to the <tt>irrationals</tt> node.</p>
+<h3>Getting Your Hands Dirty</h3>
+<h4>Parse Functions</h4>
+<p>There are two parse functions available. Use these to have the parser do its
+thing.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>struct</strong> keyval_node * keyval_parse_file(<strong>const</strong> <strong>char</strong> * filename);
 <strong>struct</strong> keyval_node * keyval_parse_string(<strong>const</strong> <strong>char</strong> * data);</tt></pre>
 </div></div>
-<div class="para"><p>The first one takes a file name and returns the parsed node structure. The
+<p>The first one takes a file name and returns the parsed node structure. The
 second one takes a string of data (perhaps the contents of a file) and returns
-the parsed node structure.</p></div>
-<div class="para"><p>As an artifact of the parser, the returned node is a sort of <em>supernode</em>. The
+the parsed node structure.</p>
+<p>As an artifact of the parser, the returned node is a sort of <em>supernode</em>. The
 only item of interest in this node is <tt>children</tt>. However, due to the way that
-the node finding function works, this issue is usually transparent.</p></div>
-<h4 id="_error_checking">Error Checking</h4>
-<div class="para"><p>Since users might be writing configuration files, there are likely to be syntax
+the node finding function works, this issue is usually transparent.</p>
+<h4>Error Checking</h4>
+<p>Since users might be writing configuration files, there are likely to be syntax
 errors. The following function returns an error string or <tt>NULL</tt> if there were
-no errors.</p></div>
+no errors.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><i>/* returns the error string or NULL if no error occurred. the internal error</i>
@@ -474,9 +458,9 @@ no errors.</p></div>
 <i>/* it's up to you to free the return value. */</i>
 <strong>char</strong> * keyval_get_error(<strong>void</strong>);</tt></pre>
 </div></div>
-<div class="para"><p>The error string includes section and line information that will help fix the
-error.</p></div>
-<div class="para"><p>Here's a broken configuration file.</p></div>
+<p>The error string includes section and line information that will help fix the
+error.</p>
+<p>Here's a broken configuration file.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt>a =
@@ -487,14 +471,14 @@ z = 3
 section {
         james =</tt></pre>
 </div></div>
-<div class="para"><p>The following error string is generated.</p></div>
+<p>The following error string is generated.</p>
 <div class="listingblock">
 <div class="content">
-<pre><tt>keyvalcfg: error: expected a value after `a =` on line 1</tt></pre>
+<pre><tt>keyval: error: expected a value after `a =` on line 1</tt></pre>
 </div></div>
-<div class="para"><p>It is almost always a good idea to somehow get this error string to the user.
+<p>It is almost always a good idea to somehow get this error string to the user.
 A reasonable way of doing this is to print to standard error, or, if your
-program has a gui, popping up an error dialog.</p></div>
+program has a gui, popping up an error dialog.</p>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
@@ -511,50 +495,50 @@ program has a gui, popping up an error dialog.</p></div>
 <td class="content">After calling a parse function, you should always check for errors.</td>
 </tr></table>
 </div>
-<h4 id="_avoiding_memory_leaks">Avoiding Memory Leaks</h4>
-<div class="para"><p>When you're done with the <em>supernode</em> structure, you should free it using this
-function.</p></div>
+<h4>Avoiding Memory Leaks</h4>
+<p>When you're done with the <em>supernode</em> structure, you should free it using this
+function.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>void</strong> keyval_node_free_all(<strong>struct</strong> keyval_node * head);</tt></pre>
 </div></div>
-<h4 id="_getting_node_names">Getting Node Names</h4>
-<div class="para"><p>If you've acquired a node, you can get its name using the following function.</p></div>
+<h4>Getting Node Names</h4>
+<p>If you've acquired a node, you can get its name using the following function.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>char</strong> * keyval_node_get_name(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
-<div class="para"><p>The function will return NULL if a node has no name. Always remember to free
-the result.</p></div>
-<h4 id="_navigating_a_node">Navigating a Node</h4>
-<h5 id="_getting_children">Getting Children</h5>
-<div class="para"><p>The following function will give you the first child node of a node. Since
-children are arranged in a linked list, this allows you to access all children.</p></div>
+<p>The function will return NULL if a node has no name. Always remember to free
+the result.</p>
+<h4>Navigating a Node</h4>
+<h5>Getting Children</h5>
+<p>The following function will give you the first child node of a node. Since
+children are arranged in a linked list, this allows you to access all children.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>struct</strong> keyval_node * keyval_node_get_children(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
-<div class="para"><p>Of course, it returns <tt>NULL</tt> on failure.</p></div>
-<h5 id="_list_traversal">List Traversal</h5>
-<div class="para"><p>If you'd like to get the next element in a linked list of nodes, you can call
-this function. It will return NULL if there are no more elements.</p></div>
+<p>Of course, it returns <tt>NULL</tt> on failure.</p>
+<h5>List Traversal</h5>
+<p>If you'd like to get the next element in a linked list of nodes, you can call
+this function. It will return NULL if there are no more elements.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>struct</strong> keyval_node * keyval_node_get_next(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
-<h5 id="_finding_a_node_by_name">Finding a Node by Name</h5>
-<div class="para"><p>The principal node navigation functions are:</p></div>
+<h5>Finding a Node by Name</h5>
+<p>The principal node navigation functions are:</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>struct</strong> keyval_node * keyval_node_find(<strong>struct</strong> keyval_node * head, <strong>char</strong> * name);
 <strong>struct</strong> keyval_node * keyval_node_find_next(<strong>struct</strong> keyval_node * node,
                                            <strong>char</strong> * name);</tt></pre>
 </div></div>
-<div class="para"><p>The first function will search the children of <tt>head</tt> for a node
-matching <tt>name</tt>. If no such node is found, it returns NULL.</p></div>
-<div class="para"><p>You can use the second function to successively find (and do something with)
-all nodes with a specific name. It is used to find the next match.</p></div>
-<div class="para"><p>For example, suppose your configuration file was as follows.</p></div>
+<p>The first function will search the children of <tt>head</tt> for a node
+matching <tt>name</tt>. If no such node is found, it returns NULL.</p>
+<p>You can use the second function to successively find (and do something with)
+all nodes with a specific name. It is used to find the next match.</p>
+<p>For example, suppose your configuration file was as follows.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt>student {
@@ -567,7 +551,7 @@ student {
         gpa = 4.0
 }</tt></pre>
 </div></div>
-<div class="para"><p>You could easily print all student names using some code like:</p></div>
+<p>You could easily print all student names using some code like:</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>struct</strong> keyval_node * students = keyval_parse_file("students.cfg");
@@ -598,9 +582,9 @@ keyval_node_free_all(students);</tt></pre>
       <tt>keyval_node_get_value_string</tt>.</td>
 </tr></table>
 </div>
-<h3 id="_getting_values">Getting Values</h3><div style="clear:left"></div>
-<h4 id="_value_types">Value Types</h4>
-<div class="para"><p>You can find out the type of a <tt>node</tt>'s <tt>value</tt> using the following.</p></div>
+<h3>Getting Values</h3>
+<h4>Value Types</h4>
+<p>You can find out the type of a <tt>node</tt>'s <tt>value</tt> using the following.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>enum</strong> keyval_value_type {
@@ -615,12 +599,12 @@ keyval_node_free_all(students);</tt></pre>
 <i>/* determines the value type of a node. */</i>
 <strong>enum</strong> keyval_value_type keyval_node_get_value_type(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
-<div class="para"><p>The possible return values for <tt>keyval_node_get_value_type</tt> are enumerated in
-<tt>enum keyval_value_type</tt>.</p></div>
-<div class="para"><p>This function determines the best possible type of a value. It will certainly
+<p>The possible return values for <tt>keyval_node_get_value_type</tt> are enumerated in
+<tt>enum keyval_value_type</tt>.</p>
+<p>This function determines the best possible type of a value. It will certainly
 return correct results for numbers, lists, and strings. However, there can be
-ambiguity in parsing boolean values. Boolean values will be recognized if:</p></div>
-<div class="olist"><ol>
+ambiguity in parsing boolean values. Boolean values will be recognized if:</p>
+<ol>
 <li>
 <p>
 The value is of length 1 and is one of <tt>t</tt>, <tt>T</tt>, <tt>y</tt>, <tt>Y</tt>, <tt>f</tt>, <tt>F</tt>, <tt>n</tt>,
@@ -633,10 +617,10 @@ The value is some variation of <tt>true</tt> or <tt>false</tt> (case insensitive
    is performed.)
 </p>
 </li>
-</ol></div>
-<h4 id="_value_acquisition">Value Acquisition</h4>
-<div class="para"><p>Once you know what type of value you want, you can call the corresponding value
-acquisition function.</p></div>
+</ol>
+<h4>Value Acquisition</h4>
+<p>Once you know what type of value you want, you can call the corresponding value
+acquisition function.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><strong>unsigned</strong> <strong>char</strong> keyval_node_get_value_bool(<strong>struct</strong> keyval_node * node);
@@ -644,13 +628,13 @@ acquisition function.</p></div>
 <strong>int</strong> keyval_node_get_value_int(<strong>struct</strong> keyval_node * node);
 <strong>double</strong> keyval_node_get_value_double(<strong>struct</strong> keyval_node * node);</tt></pre>
 </div></div>
-<div class="para"><p>These are self explanatory.
+<p>These are self explanatory.
 NOTE: All string values returned to you by a function will need to be <tt>free()</tt> d
-      manually.</p></div>
-<h3 id="_handling_multi_line_values">Handling Multi-line Values</h3><div style="clear:left"></div>
-<div class="para"><p>Multi-line values are stored with a <tt>\</tt> at the end of the line, indicating that
+      manually.</p>
+<h3>Handling Multi-line Values</h3>
+<p>Multi-line values are stored with a <tt>\</tt> at the end of the line, indicating that
 the newline character is to be taken literally. For example, consider the
-following string.</p></div>
+following string.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt>there
@@ -659,7 +643,7 @@ many
 lines
 involved</tt></pre>
 </div></div>
-<div class="para"><p>This string should be stored in a configuration file as follows.</p></div>
+<p>This string should be stored in a configuration file as follows.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt>bunch of lines = there\
@@ -668,28 +652,32 @@ many\
 lines\
 involved</tt></pre>
 </div></div>
-<div class="para"><p>The file-writing component of the parser will automatically do this for you.</p></div>
-<h3 id="_writing_configuration_files">Writing Configuration Files</h3><div style="clear:left"></div>
-<div class="para"><p>Writing configuration files is straightforward. It is up to you to construct a
+<p>The file-writing component of the parser will automatically do this for you.</p>
+<h3>Lists</h3>
+<p>A list can be identified using a call to <tt>keyval_node_get_value_type</tt>.
+A list node can have a comment associated with it, and it will certainly
+have children.</p>
+<p>You can access list elements by accessing a list node's children. Each
+element can have a comment associated with it. You can treat each element
+as a normal value-having node; use <tt>keyval_node_get_value_type</tt> and
+<tt>keyval_node_get_value_{int, bool, string, double}</tt> to get the value.</p>
+<h3>Writing Configuration Files</h3>
+<p>Writing configuration files is straightforward. It is up to you to construct a
 well-formed supernode structure (as described above). You can then write the
-result out to a file (or standard output) using the following function.</p></div>
+result out to a file (or standard output) using the following function.</p>
 <div class="listingblock">
 <div class="content">
 <pre><tt><i>/* writes the stuff out to a file. returns 1 on success, 0 on</i>
 <i> * failure. if filename is NULL, writes to stdout. */</i>
 <strong>unsigned</strong> <strong>char</strong> keyval_write(<strong>struct</strong> keyval_node * head, <strong>const</strong> <strong>char</strong> * filename);</tt></pre>
 </div></div>
-<h3 id="_using_special_characters">Using Special Characters</h3><div style="clear:left"></div>
-<div class="para"><p>The <tt>#</tt>, <tt>{</tt>, and <tt>}</tt> characters are currently not allowed in keys or values.
-This issue may be addressed in the future, likely by allowing one to <em>escape</em>
-these characters using the <tt>\</tt> character.</p></div>
-<h3 id="_playing_with_comments">Playing With Comments</h3><div style="clear:left"></div>
-<div class="para"><p>The parser preserves comments; comments are accessible using the <tt>comment</tt> field
-of a node.</p></div>
+<h3>Playing With Comments</h3>
+<p>The parser preserves comments; comments are accessible using the <tt>comment</tt> field
+of a node.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2007-11-27 21:29:40 EDT
+Last updated 30-Nov-2007 15:20:48 EDT
 </div>
 </div>
 </body>
