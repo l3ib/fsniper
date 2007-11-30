@@ -352,8 +352,34 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 				case '\\':
 					count++;
 					break;
-				case '\n':
+				case '#':
+					if (last) {
+						unsigned char abort_comment = 0;
+						size_t count_comment = 0;
+						size_t i;
+						/* read in the comment */
+						char * data_comment = skip_leading_whitespace_line(data + count + 1);
+						while (!abort_comment) {
+							switch (data_comment[count_comment]) {
+								case '\0':
+									goto abort;
+								case '\n':
+									line++;
+									last->comment = sanitize_str(data_comment, count_comment);
+									/* turn all comment data into spaces. is this really
+									 * necessary? */
+									for (i = count; i < count + count_comment + data_comment - data; i++) {
+										data[i] = ' ';
+									}
+									abort_comment = 1;
+									break;
+							}
+							if (!abort_comment) count_comment++;
+						}
+					}
+					break;
 				case '\0':
+					abort:
 					if (last) keyval_node_free_all(last->head);
 					return NULL;
 				case ',':

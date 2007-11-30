@@ -211,6 +211,7 @@ unsigned char check_odd_numbers(struct keyval_node * cfg) {
 
 	child = keyval_node_get_next(child);
 	if (keyval_node_get_value_type(child) != KEYVAL_TYPE_INT) {
+		printf("->%s\n", child->value);
 		fprintf(stderr, "error: wrong type in `odd numbers`\n");
 		return 1;
 	}
@@ -362,12 +363,16 @@ int main(int argc, char ** argv) {
 	
 	free(comment);
 	
-	if (check_rationals(cfg)) return 1;
-	if (check_irrationals(cfg)) return 1;
-	if (check_even_numbers(cfg)) return 1;
-	if (check_odd_numbers(cfg)) return 1;
+	if (check_rationals(cfg)) goto error;
+	if (check_irrationals(cfg)) goto error;
+	if (check_even_numbers(cfg)) goto error;
+	if (check_odd_numbers(cfg)) goto error;
 	
 	keyval_node_free_all(cfg);
 	
 	return 0;
+
+	error:
+	keyval_node_free_all(cfg);
+	return 1;
 }

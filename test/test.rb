@@ -66,7 +66,8 @@ TESTS.each do |test|
 	puts "\trunning... "
 	
 	Dir.glob("#{name}/*.cfg").sort.each do |input|
-		command = ["valgrind", "--leak-check=full", "--error-exitcode=2", "--quiet"]
+		command = ["valgrind", "--leak-check=full", "--error-exitcode=2",
+		           "--quiet", "--suppressions=suppressions"]
 		command << "./test-tmp"
 		command << input
 		
