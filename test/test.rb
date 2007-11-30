@@ -20,6 +20,11 @@ TESTS = [
 		:name => 'not closed error (#2)',
 		:source => ['not-closed-2.c', 'error.c'],
 		:input => 'not-closed-2.cfg'
+	},
+	{
+		:name => 'multi-line value',
+		:source => 'multiline-value.c',
+		:input => 'multiline-value.cfg'
 	}
 ]
 
