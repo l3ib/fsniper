@@ -389,6 +389,7 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 					cur->value = strip_multiple_spaces(skip_leading_whitespace(value,
 					                                   NULL));
 					free(value);
+					/*printf("->%s\n", cur->value);*/
 					if (last) {
 						last->next = cur;
 						cur->head = last->head;
@@ -563,6 +564,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			/* read in the value. */
 			/* VALUE */
 			unsigned char comment_found = 0;
+			unsigned char list_found = 0;
 			char * v;
 
 			node = calloc(1, sizeof(struct keyval_node));
@@ -574,6 +576,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			count = 0;
 			abort = 0;
 			while (!abort) {
+				find_value:
 				switch (data[count]) {
 					case '[':
 						if (count == 0) {
@@ -589,8 +592,10 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 								keyval_append_error_va("keyval: error: list `%s` not terminated near line %d\n", name, line);
 								goto abort_node;
 							}
-							data++;
-							abort = 1;
+							list_found = 1;
+							/*data = skip_leading_whitespace_line(data + count + 1);*/
+							count = 0;
+							goto find_value;
 						}
 						break;
 					case '\\':
@@ -599,12 +604,14 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						break;
 					case '#':
 						/* read in the value, then the comment. */
-						if (count == 0) {
-							goto missing_value;
+						if (!list_found) {
+							if (count == 0) {
+								goto missing_value;
+							}
+							v = sanitize_str_unescape(data, count);
+							value = strip_multiple_spaces(skip_leading_whitespace(v, NULL));
+							free(v);
 						}
-						v = sanitize_str_unescape(data, count);
-						value = strip_multiple_spaces(skip_leading_whitespace(v, NULL));
-						free(v);
 						data = skip_leading_whitespace_line(data + count + 1);
 						comment_found = 1;
 						count = 0;
@@ -614,6 +621,10 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						 * otherwise we would be saying that the error occurred on the
 						 * wrong line below. */
 						if (count) line++;
+						if (list_found) {
+							abort = 1;
+							break;
+						}
 					case '}':
 					case '\0':
 						/* read in the value. */

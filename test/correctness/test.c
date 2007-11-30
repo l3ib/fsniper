@@ -163,7 +163,10 @@ unsigned char check_odd_numbers(struct keyval_node * cfg) {
 	
 	char * dots;
 
-	if (!(odds = keyval_node_find(cfg, "odd numbers"))) return 1;
+	if (!(odds = keyval_node_find(cfg, "odd numbers"))) {
+		fprintf(stderr, "error: `odd numbers` not found\n");
+		return 1;
+	}
 	
 	child = keyval_node_get_children(odds);
 	if (keyval_node_get_value_type(child) != KEYVAL_TYPE_INT) {
