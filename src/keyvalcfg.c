@@ -344,7 +344,7 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 		unsigned char abort = 0;
 		struct keyval_node * cur = NULL;
 		char * value;
-		data = skip_leading_whitespace(data, &line);
+		data = skip_leading_whitespace_line(data);
 		count = 0;
 
 		while (!abort) {
@@ -559,7 +559,6 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 							}
 							data = d;
 							if (data[-1] != ']') {
-								printf("erf\n");
 								/* error. list improperly terminated. */
 								keyval_append_error_va("keyval: error: list `%s` not terminated near line %d\n", name, line);
 								goto abort_node;
