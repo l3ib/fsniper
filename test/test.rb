@@ -1,30 +1,20 @@
 #!/usr/bin/ruby
 
 TESTS = [
+	'correctness',
+	'list-escape',
+	'multiline-value',
 	{
-		:name => 'correctness',
-		:source => 'correctness.c',
-		:input => 'correctness.cfg'
+		:name => 'no-value',
+		:source => 'common/error.c'
 	},
 	{
-		:name => 'no value error',
-		:source => ['no-value.c', 'error.c'],
-		:input => 'no-value.cfg'
+		:name => 'not-closed',
+		:source => 'common/error.c'
 	},
 	{
-		:name => 'not closed error',
-		:source => ['not-closed.c', 'error.c'],
-		:input => 'not-closed.cfg'
-	},
-	{
-		:name => 'not closed error (#2)',
-		:source => ['not-closed-2.c', 'error.c'],
-		:input => 'not-closed-2.cfg'
-	},
-	{
-		:name => 'multi-line value',
-		:source => 'multiline-value.c',
-		:input => 'multiline-value.cfg'
+		:name => 'not-closed-2',
+		:source => 'common/error.c'
 	}
 ]
 
@@ -37,19 +27,30 @@ end
 
 TESTS.each do |test|	
 	# compile
-	
-	puts "#{test[:name]}:\n\tcompiling..."
+
+	sources = []
+
+	if test.class == Hash
+		name = test[:name]
+		if test[:source]
+			if test[:source].class == Array
+				sources += test[:source]
+			else
+				sources << test[:source]
+			end
+		end
+	else
+		name = test
+	end
+
+	sources += Dir.glob("#{name}/*.c")
+
+	puts "#{name}:\n\tcompiling..."
 	
 	command = ["gcc", "-Wall", "-Werror", "-pedantic", "-g", "-g3", "-ggdb",
 	           "-o", "test-tmp", "-I../src/", "../src/keyvalcfg.c"]
 
-	if test[:source].class == Array
-		test[:source].each do |file|
-			command << file
-		end
-	else
-		command << test[:source]
-	end
+	command += sources
 
 	unless system(*command)
 		puts "\t\tfailed"
@@ -63,17 +64,20 @@ TESTS.each do |test|
 	
 	puts "\trunning... "
 	
-	command = valgrind ? ["valgrind", "--leak-check=full"] : []
-	command << "./test-tmp"
-	command << test[:input]
-	
-	unless system(*command)
-		puts "\t\tfailed"
-		success = false
-		break
+	Dir.glob("#{name}/*.cfg").sort.each do |input|
+		command = valgrind ? ["valgrind", "--leak-check=full"] : []
+		command << "./test-tmp"
+		command << input
+		
+		puts "\t\tcase #{input}:"
+		unless system(*command)
+			puts "\t\t\tfailed"
+			success = false
+			break
+		end
+
+		puts "\t\t\tpassed"
 	end
-	
-	puts "\t\tpassed"
 end
 
 if success
