@@ -219,7 +219,10 @@ void keyval_node_write(struct keyval_node * node, size_t depth, FILE * file) {
 			fprintf(file, "%s", value);
 			free(value);
 			if (child->next) fprintf(file, ", ");
-			else fprintf(file, "]");
+			if (child->comment) {
+				fprintf(file, " # %s\n", child->comment);
+			}
+			if (!child->next) fprintf(file, "]");
 		}
 
 		if (node->comment) fprintf(file, " # %s\n", node->comment);
@@ -280,6 +283,7 @@ unsigned char keyval_write(struct keyval_node * head, const char * filename) {
 
 /* returns 'data' + some offset (skips leading whitespace) */
 char * skip_leading_whitespace(char * data, size_t * lines) {
+	if (!data) return NULL;
 	while (*data && IS_SPACE(*data)) {
 		if (lines && (*data == '\n')) (*lines)++;
 		data++;
@@ -305,8 +309,11 @@ char * skip_leading_whitespace_line(char * data) {
  * new string which must be freed. */
 char * strip_multiple_spaces(char * string) {
 	size_t len = 0;
-	char * result = malloc(sizeof(char) * (strlen(string) + 1));
+	char * result;
 	unsigned char seen_space = 0;
+
+	if (!string) return NULL;
+	result = malloc(sizeof(char) * (strlen(string) + 1));
 
 	for (;;) {
 		if (IS_SPACE(*string)) {
@@ -633,6 +640,8 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						/* read in the value. */
 						if (comment_found) {
 							comment = sanitize_str(data, count);
+							/*printf("read comment: `%s`\n", comment);*/
+							if (list_found) abort = 1;
 						} else {
 							if (count == 0) {
 								missing_value:
