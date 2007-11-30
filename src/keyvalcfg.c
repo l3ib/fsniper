@@ -352,6 +352,10 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 				case '\\':
 					count++;
 					break;
+				case '\n':
+				case '\0':
+					if (last) keyval_node_free_all(last->head);
+					return NULL;
 				case ',':
 				case ']':
 					cur = calloc(1, sizeof(struct keyval_node));
@@ -476,6 +480,8 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						goto abort_node;
 					} else {
 						/* LEAVE */
+						/* helps better report line number errors */
+						if (data[count - 1] == '\n') line--;
 						goto leave;
 					}
 				case '=':
@@ -547,9 +553,13 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 						if (count == 0) {
 							char * d = data + 1;
 							/* this has to be a list. */
-							node->children = keyval_parse_list(&d, &line);
+							if (!(node->children = keyval_parse_list(&d, &line))) {
+								keyval_append_error_va("keyval: error: list `%s` not terminated near line %d\n", name, line);
+								goto abort_node;
+							}
 							data = d;
 							if (data[-1] != ']') {
+								printf("erf\n");
 								/* error. list improperly terminated. */
 								keyval_append_error_va("keyval: error: list `%s` not terminated near line %d\n", name, line);
 								goto abort_node;

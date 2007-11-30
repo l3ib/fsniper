@@ -15,15 +15,14 @@ TESTS = [
 	{
 		:name => 'not-closed-2',
 		:source => 'common/error.c'
+	},
+	{
+		:name => 'list-not-closed',
+		:source => 'common/error.c'
 	}
 ]
 
 success = true
-valgrind = false
-
-if ARGV.include? '-v'
-	valgrind = true
-end
 
 TESTS.each do |test|	
 	# compile
@@ -67,7 +66,7 @@ TESTS.each do |test|
 	puts "\trunning... "
 	
 	Dir.glob("#{name}/*.cfg").sort.each do |input|
-		command = valgrind ? ["valgrind", "--leak-check=full"] : []
+		command = ["valgrind", "--leak-check=full", "--error-exitcode=2", "--quiet"]
 		command << "./test-tmp"
 		command << input
 		
@@ -78,7 +77,11 @@ TESTS.each do |test|
 			break
 		end
 
-		break unless success
+		if $? == 2
+			puts "\t\t\tfailed (see valgrind)"
+			success = false
+			break
+		end
 
 		puts "\t\t\tpassed"
 	end

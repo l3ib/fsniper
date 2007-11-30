@@ -12,7 +12,7 @@ int main(int argc, char ** argv) {
 		return 1;
 	}
 
-	error = strdup_printf("keyval: error: section `x` never closed near line 1\nkeyval: in file `%s`\n", argv[1]);
+	error = strdup_printf("keyval: error: list `unclosed` not terminated near line 1\nkeyval: in file `%s`\n", argv[1]);
 	if (keyval_test_error(argv[1], error)) {
 		free(error);
 		return 1;
