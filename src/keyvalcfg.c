@@ -361,6 +361,10 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 			switch (data[count]) {
 				case '\\':
 					count++;
+					if (data[count] == '\n') line++;
+					break;
+				case '\n':
+					line++;
 					break;
 				case '#':
 					if (last) {
@@ -369,17 +373,31 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 						size_t i;
 						/* read in the comment */
 						char * data_comment = skip_leading_whitespace_line(data + count + 1);
+						char * comment;
+						data[count] = ' ';
 						while (!abort_comment) {
 							switch (data_comment[count_comment]) {
 								case '\0':
 									goto abort;
 								case '\n':
 									line++;
-									last->comment = sanitize_str(data_comment, count_comment);
+									comment = sanitize_str(data_comment, count_comment);
+									if (last->comment) {
+										/* tack this on to the previous comment... separate them
+										 * by '; ' */
+										last->comment = realloc(last->comment,
+										                        strlen(last->comment) +
+										                        strlen(comment) + 3);
+										strcat(last->comment, "; ");
+										strcat(last->comment, comment);
+										free(comment);
+									} else {
+										last->comment = comment;
+									}
 									/* turn all comment data into spaces. is this really
 									 * necessary? */
-									for (i = count; i < count + count_comment + data_comment - data; i++) {
-										data[i] = ' ';
+									for (i = 0; i < count_comment; i++) {
+										data_comment[i] = ' ';
 									}
 									abort_comment = 1;
 									break;
@@ -390,7 +408,9 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 					break;
 				case '\0':
 					abort:
-					if (last) keyval_node_free_all(last->head);
+					if (last) {
+						keyval_node_free_all(last->head);
+					}
 					return NULL;
 				case ',':
 				case ']':
@@ -399,7 +419,6 @@ struct keyval_node * keyval_parse_list(char ** _data, size_t * l) {
 					cur->value = strip_multiple_spaces(skip_leading_whitespace(value,
 					                                   NULL));
 					free(value);
-					/*printf("->%s\n", cur->value);*/
 					if (last) {
 						last->next = cur;
 						cur->head = last->head;
@@ -454,7 +473,9 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 		
 		struct keyval_node * node = NULL;
 
+		/*printf("(%d)<b>---\n `%s\n</b>--\n", line, data);*/
 		data = skip_leading_whitespace(data, &line);
+		/*printf("(%d)<a>---\n `%s\n</a>--\n", line, data);*/
 
 		/* the key lasts until = or {
 		 * error out if encountered un-escaped '}'
@@ -465,6 +486,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			switch (data[count]) {
 				case '\\':
 					count++; /* skip the next character */
+					if (data[count] == '\n') line++;
 					break;
 				case '#':
 					/* the rest of the line is a comment... */
@@ -481,6 +503,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 								if (count == 0) {
 									goto comment_only;
 								}
+								line++;
 								/* need to make all comment data into spaces now. this helps
 								 * determine whether the file is malformed or this is just
 								 * a section header. */
@@ -518,7 +541,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 					} else {
 						/* LEAVE */
 						/* helps better report line number errors */
-						if (data[count - 1] == '\n') line--;
+						/* if (data[count - 1] == '\n') line--;*/
 						goto leave;
 					}
 				case '=':
@@ -563,9 +586,9 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			}
 			if (*data != '}') {
 				/* a section was never closed! error!! */
-				/* we cannot exactly know the line here. there are newlines at the end
-				 * of blank lines. cannot be certain etc. CONFUSED?? */
-				keyval_append_error_va("keyval: error: section `%s` never closed near line %d\n", name, line);
+				/* there's really no point in reporting the line; it would have to be
+				 * the last line in the file anyway, since we're greedy. */
+				keyval_append_error_va("keyval: error: section `%s` never closed\n", name);
 				goto abort_node;
 			}
 			/* make sure we don't read the '}' thinking it's our turn to close */
