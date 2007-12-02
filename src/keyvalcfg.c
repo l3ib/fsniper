@@ -473,9 +473,13 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 		
 		struct keyval_node * node = NULL;
 
+		size_t declared_line;
+
 		/*printf("(%d)<b>---\n `%s\n</b>--\n", line, data);*/
 		data = skip_leading_whitespace(data, &line);
 		/*printf("(%d)<a>---\n `%s\n</a>--\n", line, data);*/
+
+		declared_line = line;
 
 		/* the key lasts until = or {
 		 * error out if encountered un-escaped '}'
@@ -586,9 +590,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 			}
 			if (*data != '}') {
 				/* a section was never closed! error!! */
-				/* there's really no point in reporting the line; it would have to be
-				 * the last line in the file anyway, since we're greedy. */
-				keyval_append_error_va("keyval: error: section `%s` never closed\n", name);
+				keyval_append_error_va("keyval: error: section `%s` never closed (declared on line %d)\n", name, declared_line);
 				goto abort_node;
 			}
 			/* make sure we don't read the '}' thinking it's our turn to close */
@@ -616,13 +618,13 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 							char * d = data + 1;
 							/* this has to be a list. */
 							if (!(node->children = keyval_parse_list(&d, &line))) {
-								keyval_append_error_va("keyval: error: list `%s` not terminated near line %d\n", name, line);
+								keyval_append_error_va("keyval: error: list `%s` never closed (declared on line %d)\n", name, declared_line);
 								goto abort_node;
 							}
 							data = d;
 							if (data[-1] != ']') {
 								/* error. list improperly terminated. */
-								keyval_append_error_va("keyval: error: list `%s` not terminated near line %d\n", name, line);
+								keyval_append_error_va("keyval: error: list `%s` never closed (declared on line %d)\n", name, declared_line);
 								goto abort_node;
 							}
 							list_found = 1;
