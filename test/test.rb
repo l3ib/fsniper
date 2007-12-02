@@ -1,50 +1,26 @@
 #!/usr/bin/ruby
 
-TESTS = [
-	'correctness',
-	'list-escape',
-	'multiline-value',
-	{
-		:name => 'no-value',
-		:source => 'common/error.c'
-	},
-	{
-		:name => 'not-closed',
-		:source => 'common/error.c'
-	},
-	{
-		:name => 'not-closed-2',
-		:source => 'common/error.c'
-	},
-	{
-		:name => 'list-not-closed',
-		:source => 'common/error.c'
-	},
-	'list-comment',
-	'list-comment-2'
-]
 
 success = true
 
-TESTS.each do |test|	
-	# compile
+Dir.entries('.').each do |test|
+	next unless File.ftype(test) == 'directory'
+	next if test =~ /^..?$/
 
+	# compile
 	sources = []
 
 	if test.class == Hash
 		name = test[:name]
 		if test[:source]
-			if test[:source].class == Array
-				sources += test[:source]
-			else
-				sources << test[:source]
-			end
+			sources << test[:source]
 		end
 	else
 		name = test
 	end
 
 	sources += Dir.glob("#{name}/*.c")
+	sources.flatten!
 
 	puts "#{name}:\n\tcompiling..."
 	
@@ -67,13 +43,24 @@ TESTS.each do |test|
 	
 	puts "\trunning... "
 	
-	Dir.glob("#{name}/*.cfg").sort.each do |input|
+	if File.exist? "#{name}/description.rb"
+		load "#{name}/description.rb"
+		cases = $cases.map do |argv|
+			[File.join(name, argv[0]), argv[1..-1]]
+		end
+	else
+		cases = Dir.glob("#{name}/*.cfg").sort
+	end
+
+	cases.each do |input|
 		command = ["valgrind", "--leak-check=full", "--error-exitcode=2",
 		           "--quiet", "--suppressions=suppressions"]
 		command << "./test-tmp"
 		command << input
+
+		command.flatten!
 		
-		puts "\t\tcase #{input}:"
+		puts "\t\tcase #{input.class == Array ? input[0] : input}:"
 		unless system(*command)
 			puts "\t\t\tfailed"
 			success = false
