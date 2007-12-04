@@ -1,1 +1,3 @@
-gcc -Wall -pedantic -shared -I /usr/lib/ruby/1.8/i686-linux/ -I../src/ keyvalcfg.c ../src/keyvalcfg.c -o keyvalcfg.so 2>&1 | grep -v /usr/lib/ruby/1.8/i686-linux
+gcc -Wall -pedantic -shared -I /usr/lib/ruby/1.8/i686-linux/ \
+     -I../src/ keyvalcfg_wrap.c ../src/keyvalcfg.c -o keyvalcfg_wrap.so \
+     2>&1 | grep -v /usr/lib/ruby/1.8/i686-linux

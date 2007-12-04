@@ -71,9 +71,7 @@ VALUE keyvalcfg_module_parse_string(VALUE module, VALUE string) {
 	return rb_node;
 }
 
-void Init_keyvalcfg(void) {
-	rb_require("keyvalcfg_wrap");
-
+void Init_keyvalcfg_wrap(void) {
 	keyvalcfg_module = rb_define_module("KeyvalCfg");
 	keyvalcfg_node_class = rb_define_class_under(keyvalcfg_module, "Node",
 	                                             rb_cObject);

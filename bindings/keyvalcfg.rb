@@ -1,3 +1,5 @@
+require 'keyvalcfg_wrap'
+
 module KeyvalCfg
 	class ParseError < RuntimeError
 		def new(*args)
