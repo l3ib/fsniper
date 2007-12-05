@@ -751,7 +751,10 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 	struct keyval_node * node;
 
 	data[0] = '\0';
-	if (!file) return NULL;
+	if (!file) {
+		keyval_append_error_va("keyval: error: could not open file `%s`\n", filename);
+		return NULL;
+	}
 
 	while(fgets(buf, PICESIZE, file)) {
 		data = realloc(data, strlen(data) + strlen(buf) + 1);
