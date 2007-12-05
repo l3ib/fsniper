@@ -105,6 +105,8 @@ VALUE keyvalcfg_module_parse_string(VALUE module, VALUE string) {
 	struct keyval_node * node = keyval_parse_string(StringValuePtr(string));
 	char * error = keyval_get_error();
 	if (error) {
+		rb_raise(rb_eRuntimeError, "%s", error);
+		free(error);
 		return Qnil;
 	}
 

@@ -496,6 +496,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 					/* the rest of the line is a comment... */
 					/* read it in... */
 					/* COMMENT */
+					data[count] = ' ';
 					count_comment = 0;
 					abort_comment = 0;
 					data_comment = skip_leading_whitespace_line(data + count + 1);
@@ -511,8 +512,8 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 								/* need to make all comment data into spaces now. this helps
 								 * determine whether the file is malformed or this is just
 								 * a section header. */
-								for (i = count; i < count + count_comment; i++) {
-									data[i] = ' ';
+								for (i = 0; i < count_comment; i++) {
+									data_comment[i] = ' ';
 								}
 								abort_comment = 1;
 								break;
@@ -526,7 +527,10 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 								} else {
 									comment_only:
 									node = calloc(1, sizeof(struct keyval_node));
-									data += count_comment + 2;
+									for (i = 0; i < count_comment; i++) {
+										data_comment[i] = ' ';
+									}
+									/*data += count_comment + 2;*/
 									goto done_node;
 								}
 								break;
@@ -557,7 +561,7 @@ struct keyval_node * keyval_parse_node(char ** _data, char * sec_name, size_t * 
 					abort = 1;
 					break;
 				case '\n':
-					keyval_append_error_va("keyval: error: unexpected end of line on line %d\n", ++line);
+					keyval_append_error_va("keyval: error: unexpected end of line on line %d\n", line);
 					goto abort_node;
 					break;
 				default:
