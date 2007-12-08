@@ -272,24 +272,6 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	/* start up log */
-	if (!log_open())
-	{
-		fprintf(stderr, "Error: could not start log.\n");
-		return -1;
-	}
-
-	ifd = inotify_init();
-	if (ifd < 0)
-	{
-		perror("inotify_init");
-		return -1;
-	}
-
-	if (verbose) log_write("Parsing config file: %s\n", configfile);
-	config = keyval_parse(configfile);
-	free(configfile);
-
 	/* create a pid file */
 	pidfilename = get_pid_filename();
 
@@ -331,7 +313,8 @@ int main(int argc, char** argv)
 				if (strcmp(binaryname, statusbin) == 0 && file_stat.st_uid == getuid())
 					/* exit if the process is sniper and is owned by the current user */
 				{
-					handle_quit_signal(1);
+					printf("%s: already running instance found with pid %d. exiting.\n", binaryname, pid);
+					exit(1);
 				}
 				else /* the pid file contains an old pid, one that isn't sniper, or one not owned by the current user */
 				{
@@ -350,6 +333,24 @@ int main(int argc, char** argv)
 		write_pid_file(pidfilename);
 	}
 	free(pidfilename);
+
+	/* start up log */
+	if (!log_open())
+	{
+		fprintf(stderr, "Error: could not start log.\n");
+		return -1;
+	}
+
+	ifd = inotify_init();
+	if (ifd < 0)
+	{
+		perror("inotify_init");
+		return -1;
+	}
+
+	if (verbose) log_write("Parsing config file: %s\n", configfile);
+	config = keyval_parse(configfile);
+	free(configfile);
 
 	/* add nodes to the inotify descriptor */
 	node = add_watches(ifd);
