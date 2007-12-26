@@ -109,9 +109,11 @@ void handle_event(struct inotify_event* event, int writefd)
 		}
 
 		/* filename is '/path/foo', but we want to match against 'foo' for globbing and regexs */
-		name = strrchr(filename, '/') + 1;
-		if (name == NULL || strlen(name) > strlen(filename))
+		name = strrchr(filename, '/');
+		if (name == NULL)
 			name = filename;
+		else
+			name += 1; /* name is /foo, we want foo */
 
 		if (isglob == 1)
 		{
