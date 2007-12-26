@@ -47,6 +47,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	char *filename;
 	char *handlersubstr;
 	char *handlerexec;
+	char *name;
 	char *temp;
 	char *newpathenv;
 	char *configdir;
@@ -107,9 +108,14 @@ void handle_event(struct inotify_event* event, int writefd)
 			}
 		}
 
+		/* filename is '/path/foo', but we want to match against 'foo' for globbing and regexs */
+		name = strrchr(filename, '/') + 1;
+		if (name == NULL || strlen(name) > strlen(filename))
+			name = filename;
+
 		if (isglob == 1)
 		{
-			if (fnmatch(child->name, filename, 0) != 0)
+			if (fnmatch(child->name, name, 0) != 0)
 				abort = 1;
 
 			if (abort == 0)
@@ -122,7 +128,7 @@ void handle_event(struct inotify_event* event, int writefd)
 			/* child->name is "/regex/", we want "regex" */
 			regex_str = strndup(child->name+1, strlen(child->name)-2);
 			regex = pcre_compile(regex_str, 0, &pcre_err, &pcre_erroffset, NULL);
-			pcre_match = pcre_exec(regex, NULL, filename, strlen(filename), 0, 0, NULL, 0);
+			pcre_match = pcre_exec(regex, NULL, name, strlen(name), 0, 0, NULL, 0);
 			free(regex_str);
 
 			if (pcre_match < 0)
