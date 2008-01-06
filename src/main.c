@@ -41,7 +41,7 @@ struct keyval_section *config = NULL;
 /* global watchnode */
 struct watchnode *node = NULL;
 
-/* used for verbose printfs throughout sniper */
+/* used for verbose printfs throughout fsniper */
 int verbose = 0;  
 
 /* synchronous mode, no forking for handlers */
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
 	char *configfile;
 	char *home;
 	char *error_str;
-	char *version_str = "sniper SVN";
+	char *version_str = PACKAGE_STRING;
 	char *pbuf;
 	DIR *dir;
 	fd_set set;
