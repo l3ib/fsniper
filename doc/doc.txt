@@ -23,6 +23,8 @@ directory, and move it to where it needed to go.  For example:
 - Torrent files should be scp'd to my server, where rtorrent will 
   automatically start downloading them
 
+See the RealExample section below.
+
 Writing simple handling scripts, fsniper can detect these files when
 they are written and those scripts are called.
 
@@ -199,4 +201,82 @@ Command Line Options
 Special Note: Firefox
 ---------------------
 (to be written)
+
+Real Example
+------------
+
+Above, we talked about a list of actions to take on some files.  Let's take
+a look at an example configuration file, and the associated handlers which 
+perform those actions.
+
+----------------------------------
+watch {
+    ~/tmp/drop {                                 (1)
+        image/* {                                (2)
+            handler = bg.pl                      (3)
+            handler = mv %% ~/media              (4)
+        }
+        /\.(bz2|gz)$/ {                          (5)
+            handler = theme.pl                   (6)
+        }
+    }
+
+    ~/torrants {
+        application/x-bittorrent {
+                handler = torrent.pl             (7)
+        }
+    }
+}
+-----------------------------------
+
+So in our watch block, we're watching two directories, \~/tmp/drop and
+\~/torrants, as denoted at location 1.  
+
+First, we want to look at any image that gets placed into this directory.
+We match against the image/\* mime-type, which means anything which falls 
+into the image mime-type category.  This is denoted at location 2.
+
+Order of your rules is important.  They are executed in order from first to
+last, so put the most scrutinizing handlers first.  The first thing we are
+going to do, denoted by location 3, is test an image file to see if it is a 
+background image, and move it to my backgrounds folder.  This is at location
+3.
+
+[caption="Listing: "]
+.bg.pl
+----------------------------
+#!/usr/bin/perl
+
+# requires identify from imagemagick
+
+# if no arg, exit
+exit 1 if scalar(@ARGV) != 1;
+
+# get resolution of the image
+($resw, $resh) = split /x/, (split / /, `identify $ARGV[0]`)[2];
+
+# grep against standard horizontal pixel dimensions
+$times = grep /^$resw$/, (1024, 1280, 1440, 1600, 1680, 1920, 2560);
+
+# if we had a grep match, move it and exit
+if ($times > 0)
+{
+    `mv $ARGV[0] ~/media/bgs`;
+    exit 0;
+}
+
+# could not deal with it, let fsniper know to pass it in
+exit 1;
+------------------------------
+
+Basically, the script looks at the dimensions, and tries to figure out if it
+is a standard background size.  If so, it moves it to the \~/media/bg directory.
+Then, it exits with the exit code 0.  This tells fsniper that this script 
+handled the file, and don't run any more handlers.
+
+If it didn't end up handling the file, we return 1 from the handler.  This 
+tells fsniper to move on to the next handler in the list, which is at location
+4.  We've inlined a simple move command here which moves any image file to the
+\~/media directory.
+
 
