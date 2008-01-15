@@ -22,6 +22,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef USE_EFENCE
+#include <efence.h>
+#endif
+
 #define PICESIZE 512
 
 #define DEBUG 0
