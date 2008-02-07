@@ -4,6 +4,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef USE_EFENCE
+#include <efence.h>
+#endif
+
 struct argument * argument_new(void) {
 	struct argument * argument = malloc(sizeof(struct argument));
 
