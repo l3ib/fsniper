@@ -54,6 +54,9 @@ int logtostdout = 0;
 /* inotify file descriptor */
 int ifd;
 
+/* the actual config file. needed by SIGHUP. */
+char *configfile;
+
 /* structure for maintaining pipes */
 struct pipe_list
 {
@@ -86,6 +89,7 @@ void free_watchnodes()
  *
  * frees:
  * - config
+ * - configfile
  * - watchnode elements
  * - pipe list
  *
@@ -109,6 +113,8 @@ void free_all_globals()
 		tmp_pipe = pipe_list_remove(pipe_list_head, tmp_pipe);
 
 	free(pipe_list_head);
+
+	free(configfile);
 }
 
 char *get_pid_filename()
@@ -168,8 +174,7 @@ void handle_child_signal()
 /* handler for SIGHUP. reloads the config file. */
 void handle_sighup_signal()
 {
-	/* TODO:
-		 load config file */
+	config = keyval_parse(configfile);
 	close(ifd);
 	free_watchnodes();
 	node = add_watches(ifd);
@@ -370,7 +375,6 @@ int main(int argc, char** argv)
 
 	if (verbose) log_write("Parsing config file: %s\n", configfile);
 	config = keyval_parse(configfile);
-	free(configfile);
 
 	/* add nodes to the inotify descriptor */
 	node = add_watches(ifd);
