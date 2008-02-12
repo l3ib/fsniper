@@ -35,12 +35,12 @@ static void write_out(int writefd, char* text);
 /* exits the handle_event function, conditional based on
  * whether it needs to simply return (in sync mode) or do
  * cleanup and exit a child process. */
-#define EXIT_HANDLER(status) \
-	if (syncmode) return; \
-	else \
-		close(writefd); \
-		free_all_globals(); \
-		exit(status);
+#define EXIT_HANDLER(status)										\
+	if (syncmode) return;													\
+	else																					\
+		close(writefd);															\
+	free_all_globals();														\
+	exit(status);
 
 void handle_event(struct inotify_event* event, int writefd)
 {

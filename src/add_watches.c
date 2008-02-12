@@ -63,7 +63,7 @@ void recurse_add(int fd, char *directory)
 struct watchnode* add_watches(int fd)
 {
 	struct keyval_section* child;
-    struct keyval_section* startchild = NULL;
+	struct keyval_section* startchild = NULL;
 	struct keyval_pair* recurse;
 	char* directory;
 	wordexp_t wexp;
@@ -72,21 +72,21 @@ struct watchnode* add_watches(int fd)
 	node->next = NULL;
 	firstnode = node;
 
-    /* find watch child from main cfg item */
-    for (child = config->children; child; child = child->next)
-        if (strcmp(child->name, "watch") == 0)
-        {
-            startchild = child;
-            break;
-        }
+	/* find watch child from main cfg item */
+	for (child = config->children; child; child = child->next)
+		if (strcmp(child->name, "watch") == 0)
+		{
+			startchild = child;
+			break;
+		}
 
-    if (!startchild)
-    {
-        if (verbose) log_write("No start child found!");
-        return firstnode;
-    }
+	if (!startchild)
+	{
+		if (verbose) log_write("No start child found!");
+		return firstnode;
+	}
 
-    /* get children of this */
+	/* get children of this */
 	for (child = startchild->children; child; child = child->next)
 	{
 		wordexp(child->name, &wexp, 0);
