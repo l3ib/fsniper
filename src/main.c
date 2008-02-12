@@ -51,6 +51,9 @@ int syncmode = 0;
 /* whether to log to stdout or not */
 int logtostdout = 0;
 
+/* inotify file descriptor */
+int ifd;
+
 /* structure for maintaining pipes */
 struct pipe_list
 {
@@ -61,6 +64,22 @@ struct pipe_list
 struct pipe_list* pipe_list_head = NULL;
 struct pipe_list * pipe_list_remove(struct pipe_list * head,
 																		struct pipe_list * element);
+
+/* frees all watchnode elements */
+void free_watchnodes()
+{
+	struct watchnode *cur, *prev;
+
+	cur = node;
+
+	while (cur) {
+		if (cur->path)
+			free(cur->path);
+		prev = cur;
+		cur = cur->next;
+		free(prev);
+	}
+}
 
 /* frees memory.  called from more than one place because fork'd copies
  * still have globals hanging around before they are exited.
@@ -76,21 +95,13 @@ struct pipe_list * pipe_list_remove(struct pipe_list * head,
  */
 void free_all_globals()
 {
-	struct watchnode *cur, *prev;
 	struct pipe_list* tmp_pipe;
 
 	/* free config here */ 
 	keyval_section_free_all(config);
 
 	/* free watchnode elements */
-	cur = node;
-	while (cur) {
-		if (cur->path)
-			free(cur->path);
-		prev = cur;
-		cur = cur->next;
-		free(prev);
-	}
+	free_watchnodes();
 
 	/* free / close any remaining pipes in the list */    
 	tmp_pipe = pipe_list_head->next;
@@ -154,6 +165,17 @@ void handle_child_signal()
 	while (wait3(&status, WNOHANG, 0) > 0) {} 
 }
 
+/* handler for SIGHUP. reloads the config file. */
+void handle_sighup_signal()
+{
+	/* TODO:
+		 load config file */
+	close(ifd);
+	free_watchnodes();
+	node = add_watches(ifd);
+}
+
+
 /* handler for any child process receiving a quit signal. */
 void handle_child_quit_signal(int signum)
 {
@@ -204,6 +226,7 @@ int main(int argc, char** argv)
 	signal(SIGINT, &handle_quit_signal); 
 	signal(SIGTERM, &handle_quit_signal);
 	signal(SIGCHLD, &handle_child_signal);
+	signal(SIGHUP, &handle_sighup_signal);
 
 
 	/* add command line arguments */
