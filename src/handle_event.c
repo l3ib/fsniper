@@ -38,9 +38,11 @@ static void write_out(int writefd, char* text);
 #define EXIT_HANDLER(status)										\
 	if (syncmode) return;													\
 	else																					\
+	{																							\
 		close(writefd);															\
-	free_all_globals();														\
-	exit(status);
+		free_all_globals();													\
+		exit(status);																\
+	}
 
 void handle_event(struct inotify_event* event, int writefd)
 {

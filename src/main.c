@@ -171,9 +171,10 @@ void handle_child_signal()
 	while (wait3(&status, WNOHANG, 0) > 0) {} 
 }
 
-/* handler for SIGHUP. reloads the config file. */
-void handle_sighup_signal()
+/* handler for HUP. reloads the config file. */
+void handle_hup_signal()
 {
+	if (verbose) log_write("Received signal SIGHUP, reloading config file.\n");
 	config = keyval_parse(configfile);
 	close(ifd);
 	free_watchnodes();
@@ -231,7 +232,7 @@ int main(int argc, char** argv)
 	signal(SIGINT, &handle_quit_signal); 
 	signal(SIGTERM, &handle_quit_signal);
 	signal(SIGCHLD, &handle_child_signal);
-	signal(SIGHUP, &handle_sighup_signal);
+	signal(SIGHUP, &handle_hup_signal);
 
 
 	/* add command line arguments */
