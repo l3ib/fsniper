@@ -180,7 +180,6 @@ void handle_hup_signal()
 	free_watchnodes();
 	ifd = inotify_init();
 	node = add_watches(ifd);
-	log_write("errno is: %d\n",errno);
 }
 
 
