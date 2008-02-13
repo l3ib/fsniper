@@ -405,8 +405,6 @@ int main(int argc, char** argv)
 			{
 				if (errno == EINTR)
 					retryselect = 1;
-				else if (errno == 4)
-					retryselect = 0;
 				else
 					handle_quit_signal(-2);
 			} else
