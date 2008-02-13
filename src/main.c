@@ -57,9 +57,6 @@ int ifd;
 /* the actual config file. needed by SIGHUP. */
 char *configfile;
 
-/* 1 if a new config file has just been loaded */
-int newcfg = 0;
-
 /* structure for maintaining pipes */
 struct pipe_list
 {
@@ -183,7 +180,7 @@ void handle_hup_signal()
 	free_watchnodes();
 	ifd = inotify_init();
 	node = add_watches(ifd);
-  newcfg = 1;
+	log_write("errno is: %d\n",errno);
 }
 
 
@@ -409,11 +406,8 @@ int main(int argc, char** argv)
 			{
 				if (errno == EINTR)
 					retryselect = 1;
-				else if (newcfg == 1)
-				{
+				else if (errno == 4)
 					retryselect = 0;
-					newcfg = 0;
-				}
 				else
 					handle_quit_signal(-2);
 			} else
