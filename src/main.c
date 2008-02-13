@@ -57,6 +57,9 @@ int ifd;
 /* the actual config file. needed by SIGHUP. */
 char *configfile;
 
+/* 1 if a new config file has just been loaded */
+int newcfg = 0;
+
 /* structure for maintaining pipes */
 struct pipe_list
 {
@@ -174,11 +177,13 @@ void handle_child_signal()
 /* handler for HUP. reloads the config file. */
 void handle_hup_signal()
 {
-	if (verbose) log_write("Received signal SIGHUP, reloading config file.\n");
+	if (verbose) log_write("Received SIGHUP, reloading config file.\n");
 	config = keyval_parse(configfile);
 	close(ifd);
 	free_watchnodes();
+	ifd = inotify_init();
 	node = add_watches(ifd);
+  newcfg = 1;
 }
 
 
@@ -404,12 +409,17 @@ int main(int argc, char** argv)
 			{
 				if (errno == EINTR)
 					retryselect = 1;
+				else if (newcfg == 1)
+				{
+					retryselect = 0;
+					newcfg = 0;
+				}
 				else
 					handle_quit_signal(-2);
 			} else
 				retryselect = 0;
 		}
-
+		
 		/* handle any events on the inotify fd */
 		if (FD_ISSET(ifd, &set))
 		{
@@ -453,7 +463,7 @@ int main(int argc, char** argv)
 			}
 			i = 0;
 		}
-
+		
 		/* now lets see if we have any pipe activity */
 		pipe_list_cur = pipe_list_head->next;
 		while (pipe_list_cur)
