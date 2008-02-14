@@ -233,6 +233,13 @@ void handle_event(struct inotify_event* event, int writefd)
 
 		if (verbose) log_write("Handler \"%s\" returned exit code %d.\n", handler->value, sysret);
 
+		if (sysret == 127)
+		{
+			log_write("Could not execute handler \"%s\", trying next one.\n", handler->value);
+			handler = handler->next;
+			continue;
+		}
+
 		free(handlerexec);
 
 		/* do somethng based on return code! */
