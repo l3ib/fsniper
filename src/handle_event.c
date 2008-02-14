@@ -231,6 +231,8 @@ void handle_event(struct inotify_event* event, int writefd)
 
 		sysret = WEXITSTATUS(system(handlerexec));		
 
+		if (verbose) log_write("Handler \"%s\" returned exit code %d.\n", handler->value, sysret);
+
 		free(handlerexec);
 
 		/* do somethng based on return code! */
