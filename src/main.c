@@ -210,7 +210,6 @@ int main(int argc, char** argv)
 	int ifd, len, i = 0, selectret = 0, maxfd, retryselect, pid;
 	char buf[BUF_LEN]; 
 	char *configdir;
-	char *configfile;
 	char *pidfilename;
 	char *statusfilename;
 	char *statusbin;
