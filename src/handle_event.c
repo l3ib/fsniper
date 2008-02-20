@@ -23,12 +23,14 @@ extern struct keyval_section *config;
 extern struct watchnode *node;
 extern int verbose;
 extern int syncmode;
+extern int logtostdout;
 
 extern void free_all_globals();
 
 static int get_delay_time(struct keyval_pair* kv);
 static int get_delay_repeats(struct keyval_pair* kv);
 static char* build_exec_line(char* handler, char* filename);
+static void write_out(int writefd, char* text);
 
 /* exits the handle_event function, conditional based on
  * whether it needs to simply return (in sync mode) or do
@@ -51,6 +53,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	char *newpathenv;
 	char *configdir;
 	char *scriptdir;
+    char *temp;
 	const char *mimetype;
 	magic_t magic;
 	int i, j, sysret, attempts;
@@ -223,19 +226,35 @@ void handle_event(struct inotify_event* event, int writefd)
 		/* create executable statement (subs %%) */
 		handlerexec = build_exec_line(handler->value, filename);
 
-		write(writefd, "Executing: ", 11);
-		write(writefd, handlerexec, strlen(handlerexec));
-		write(writefd, "\n", 1);
+		write_out(writefd, "Executing: ");
+		write_out(writefd, handlerexec);
+		write_out(writefd, "\n");
 
 		sysret = WEXITSTATUS(system(handlerexec));		
 
-		if (verbose) log_write("Handler \"%s\" returned exit code %d.\n", handler->value, sysret);
+        /* ugh, i know.  we have to make calls to write_out becuase we cannot log from this 
+         * function.  if it's called from another process (aka, normal operation, opposed to syncmode)
+         * you could get funny results. */
+		if (verbose)
+        {
+            temp = malloc(4);
+            sprintf(temp, "%d", sysret);
+            write_out(writefd, "Handler \"");
+            write_out(writefd, handler->value);
+            write_out(writefd, "\" returned exit code ");
+            write_out(writefd, temp);
+            write_out(writefd, "\n");
 
+            free(temp);
+        }
+
+        /* special message if system() didn't find the handler.  control flow will pass down below
+         * to calling the next handler */
 		if (sysret == 127)
 		{
-			log_write("Could not execute handler \"%s\", trying next one.\n", handler->value);
-			handler = handler->next;
-			continue;
+			write_out(writefd, "Could not execute handler \"");
+            write_out(writefd, handler->value);
+            write_out(writefd, "\", trying next one.\n");
 		}
 
 		free(handlerexec);
@@ -251,9 +270,9 @@ void handle_event(struct inotify_event* event, int writefd)
 		{
 			/* go to sleep for a while */
 			attempts++;
-			write(writefd, "Handler indicated delay, sleeping...", 37); 
+			write_out(writefd, "Handler indicated delay, sleeping..."); 
 			sleep(delay_time);
-			write(writefd, "Handler process resuming.", 26);
+			write_out(writefd, "Handler process resuming.");
 		} 
 		else
 		{
@@ -263,7 +282,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	}
 
 	if (delay_repeats != 0 && attempts >= delay_repeats)
-		write(writefd, "Handler gave up on retries.", 28); 
+		write_out(writefd, "Handler gave up on retries."); 
 
 	free(filename);
 	magic_close(magic);
@@ -378,5 +397,10 @@ static char* build_exec_line(char* handler, char* filename)
 	free(sanefilename);
 
 	return handlerline;
+}
+
+void write_out(int writefd, char* text)
+{
+    write(writefd, text, strlen(text));
 }
 

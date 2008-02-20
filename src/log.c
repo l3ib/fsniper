@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -23,13 +24,18 @@ int log_open()
 	char *configdir, *logfile;
 	configdir = get_config_dir();
 
-	logfile = malloc(strlen(configdir) + strlen("/log") + 1);
-	sprintf(logfile, "%s/log", configdir);
-	free(configdir);	
+    if (!logtostdout)
+    {
+    	logfile = malloc(strlen(configdir) + strlen("/log") + 1);
+    	sprintf(logfile, "%s/log", configdir);
+    	free(configdir);	
 
-	_logfd = fopen(logfile, "w");
+    	_logfd = fopen(logfile, "w");
 
-	free(logfile);
+    	free(logfile);
+    }
+    else
+        _logfd = stdout;
 
 	if (_logfd)
 		log_write("Log opened\n");
@@ -45,13 +51,11 @@ int log_write(char *str, ...)
 	char readabletime[30];
 	t = time(NULL);
 	strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
-	
+
 	fprintf(_logfd, "%s ", readabletime);
-	if (logtostdout) fprintf(stdout, "%s ", readabletime);
 
 	va_start(va, str);
 	len = vfprintf(_logfd, str, va);
-	if (logtostdout) len = vfprintf(stdout, str, va);
 	va_end(va);
 
 	fflush(_logfd);
