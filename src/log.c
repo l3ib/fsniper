@@ -24,18 +24,18 @@ int log_open()
 	char *configdir, *logfile;
 	configdir = get_config_dir();
 
-    if (!logtostdout)
-    {
-    	logfile = malloc(strlen(configdir) + strlen("/log") + 1);
-    	sprintf(logfile, "%s/log", configdir);
-    	free(configdir);	
+	if (!logtostdout)
+	{
+		logfile = malloc(strlen(configdir) + strlen("/log") + 1);
+		sprintf(logfile, "%s/log", configdir);
+		free(configdir);	
 
-    	_logfd = fopen(logfile, "w");
+		_logfd = fopen(logfile, "w");
 
-    	free(logfile);
-    }
-    else
-        _logfd = stdout;
+		free(logfile);
+	}
+	else
+		_logfd = stdout;
 
 	if (_logfd)
 		log_write("Log opened\n");

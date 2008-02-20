@@ -53,7 +53,7 @@ void handle_event(struct inotify_event* event, int writefd)
 	char *newpathenv;
 	char *configdir;
 	char *scriptdir;
-    char *temp;
+	char *temp;
 	const char *mimetype;
 	magic_t magic;
 	int i, j, sysret, attempts;
@@ -232,29 +232,29 @@ void handle_event(struct inotify_event* event, int writefd)
 
 		sysret = WEXITSTATUS(system(handlerexec));		
 
-        /* ugh, i know.  we have to make calls to write_out becuase we cannot log from this 
-         * function.  if it's called from another process (aka, normal operation, opposed to syncmode)
-         * you could get funny results. */
+		/* ugh, i know.  we have to make calls to write_out becuase we cannot log from this 
+		 * function.  if it's called from another process (aka, normal operation, opposed to syncmode)
+		 * you could get funny results. */
 		if (verbose)
-        {
-            temp = malloc(4);
-            sprintf(temp, "%d", sysret);
-            write_out(writefd, "Handler \"");
-            write_out(writefd, handler->value);
-            write_out(writefd, "\" returned exit code ");
-            write_out(writefd, temp);
-            write_out(writefd, "\n");
+		{
+			temp = malloc(4);
+			sprintf(temp, "%d", sysret);
+			write_out(writefd, "Handler \"");
+			write_out(writefd, handler->value);
+			write_out(writefd, "\" returned exit code ");
+			write_out(writefd, temp);
+			write_out(writefd, "\n");
 
-            free(temp);
-        }
+			free(temp);
+		}
 
-        /* special message if system() didn't find the handler.  control flow will pass down below
-         * to calling the next handler */
+		/* special message if system() didn't find the handler.  control flow will pass down below
+		 * to calling the next handler */
 		if (sysret == 127)
 		{
 			write_out(writefd, "Could not execute handler \"");
-            write_out(writefd, handler->value);
-            write_out(writefd, "\", trying next one.\n");
+			write_out(writefd, handler->value);
+			write_out(writefd, "\", trying next one.\n");
 		}
 
 		free(handlerexec);
@@ -401,6 +401,6 @@ static char* build_exec_line(char* handler, char* filename)
 
 void write_out(int writefd, char* text)
 {
-    write(writefd, text, strlen(text));
+	write(writefd, text, strlen(text));
 }
 
