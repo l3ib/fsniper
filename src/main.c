@@ -178,11 +178,10 @@ struct pipe_list * pipe_list_remove(struct pipe_list * head,
 
 int main(int argc, char** argv)
 {
-	int ifd, len, i = 0, selectret = 0, maxfd, forkret, retryselect, pid;
+	int ifd, len, i = 0, selectret = 0, maxfd, retryselect, pid;
 	char buf[BUF_LEN]; 
 	char *configdir;
 	char *configfile;
-	char *home;
 	char *pidfilename;
 	char *statusfilename;
 	char *statusbin;
@@ -191,12 +190,10 @@ int main(int argc, char** argv)
 	char *pbuf;
 	FILE *pidfile;
 	FILE *statusfile;
-	DIR *dir;
 	fd_set set;
 	struct inotify_event *event;
 	struct argument *argument = argument_new();
 	struct pipe_list *pipe_list_cur;
-	struct pipe_list *pipe_list_tmp;
 	struct stat file_stat;
 
 	/* alloc pipe list */
