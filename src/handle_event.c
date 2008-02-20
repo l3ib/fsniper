@@ -9,6 +9,7 @@
 #include "keyvalcfg.h"
 #include "watchnode.h"
 #include "util.h"
+#include "log.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -45,10 +46,8 @@ void handle_event(struct inotify_event* event, int writefd)
 	char isglob;
 	char foundslash;
 	char *filename;
-	char *handlersubstr;
 	char *handlerexec;
 	char *name;
-	char *temp;
 	char *newpathenv;
 	char *configdir;
 	char *scriptdir;
@@ -62,7 +61,6 @@ void handle_event(struct inotify_event* event, int writefd)
 	const char *pcre_err;
 	int pcre_erroffset;
 	int pcre_match;
-	int tempcount = 0;
 	int delay_repeats;
 	int delay_time;
 
@@ -287,10 +285,10 @@ static int get_delay_time(struct keyval_pair* kv)
 {
 	struct keyval_pair* val;
 
-	if (val = keyval_pair_find(kv, "delay_time"))
+	if ((val = keyval_pair_find(kv, "delay_time")))
 		return keyval_pair_get_value_int(val);
 
-	if (val = keyval_pair_find(config->keyvals, "delay_time"))
+	if ((val = keyval_pair_find(config->keyvals, "delay_time")))
 		return keyval_pair_get_value_int(val);
 
 	/* 5 minute default */
@@ -314,10 +312,10 @@ static int get_delay_repeats(struct keyval_pair* kv)
 {
 	struct keyval_pair* val;
 
-	if (val = keyval_pair_find(kv, "delay_repeats"))
+	if ((val = keyval_pair_find(kv, "delay_repeats")))
 		return keyval_pair_get_value_int(val);
 
-	if (val = keyval_pair_find(config->keyvals, "delay_repeats"))
+	if ((val = keyval_pair_find(config->keyvals, "delay_repeats")))
 		return keyval_pair_get_value_int(val);
 
 	return 0;
@@ -341,11 +339,8 @@ static char* build_exec_line(char* handler, char* filename)
 	char* sanefilename;
 	char* handlerline;
 	char* postpercent = NULL;
-	char* temp;
 	char* percentloc = NULL;
 	int didreplace = 0;
-	int templen = 0;
-	int i;
 	int percentoffset;
 	int reallocsize;
 
@@ -356,7 +351,7 @@ static char* build_exec_line(char* handler, char* filename)
 	handlerline = strdup(handler); 
 
 	/* now replace all %% that occur */
-	while (percentloc = strstr(handlerline, "%%"))
+	while ((percentloc = strstr(handlerline, "%%")))
 	{
 		percentoffset = percentloc - handlerline;
 		didreplace = 1;
