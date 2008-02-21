@@ -174,7 +174,7 @@ void handle_child_signal()
 /* handler for HUP. reloads the config file. */
 void handle_hup_signal()
 {
-	if (verbose) log_write("Received SIGHUP, reloading config file.\n");
+	log_write("Received SIGHUP, reloading config file.\n");
 	keyval_section_free_all(config);
 	config = keyval_parse(configfile);
 	close(ifd);
