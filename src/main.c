@@ -122,8 +122,8 @@ char *get_pid_filename()
 	struct passwd *uid;
 	char *pidfilename;
 	uid = getpwuid(getuid());
-	pidfilename = malloc(strlen("/tmp/sniper-") + strlen(uid->pw_name) + strlen(".pid") + 1);
-	sprintf(pidfilename, "/tmp/sniper-%s.pid", uid->pw_name);
+	pidfilename = malloc(strlen("/tmp/fsniper-") + strlen(uid->pw_name) + strlen(".pid") + 1);
+	sprintf(pidfilename, "/tmp/fsniper-%s.pid", uid->pw_name);
 	return pidfilename;
 }
 
@@ -301,7 +301,7 @@ int main(int argc, char** argv)
 
 	/* create a pid file */
 	pidfilename = get_pid_filename();
-
+	
 	if (stat(pidfilename, &file_stat) == 0) /* pidfile exists */
 	{
 		pidfile = fopen(pidfilename, "r");
@@ -330,7 +330,7 @@ int main(int argc, char** argv)
 			else /* process exists, so check owner and binary name */
 			{
 				statusfile = fopen(statusfilename, "r");
-				statusbin = malloc(strlen(binaryname) + 2); /* the binary name may start with "sniper" but be longer */
+				statusbin = malloc(strlen(binaryname) + 2); /* the binary name may start with "fsniper" but be longer */
 				sprintf(scanformat, "Name:   %%%ds", strlen(binaryname) + 1);
 				fscanf(statusfile, scanformat, statusbin);
 				free(statusfilename);
@@ -338,12 +338,12 @@ int main(int argc, char** argv)
 				fclose(pidfile);
 				
 				if (strcmp(binaryname, statusbin) == 0 && file_stat.st_uid == getuid())
-					/* exit if the process is sniper and is owned by the current user */
+					/* exit if the process is fsniper and is owned by the current user */
 				{
 					printf("%s: already running instance found with pid %d. exiting.\n", binaryname, pid);
 					exit(1);
 				}
-				else /* the pid file contains an old pid, one that isn't sniper, or one not owned by the current user */
+				else /* the pid file contains an old pid, one that isn't fsniper, or one not owned by the current user */
 				{
 					write_pid_file(pidfilename);
 				}
