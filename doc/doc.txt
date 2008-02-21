@@ -201,7 +201,42 @@ Command Line Options
 
 Special Note: Firefox
 ---------------------
-(to be written)
+When dowloading a file named "foo", Firefox creates a "foo" with size
+0 and a "foo.part" in the download directory. "foo" is closed for
+writing immediately after being created, so fsniper will attempt to
+run the appropriate handlers on it. Use the following Firefox
+handler before any other handlers to prevent later handlers
+from running on this incomplete "foo" file.
+
+-----------------------------------
+#!/bin/bash
+# Handler to prevent later handlers from being called on temporary Firefox files
+
+args="$*"
+length=`expr length "$*"`
+size=`du "${args}" | awk '{print $1'}`
+
+# if this is "foo" and "foo.part" exists, firefox is still downloading foo
+# so we ignore it for now. it will be closed and the handler called again
+# once the download finishes.
+if [[ -e "${args}.part" && "$size" -eq "0" ]]
+then
+  exit 0
+fi
+
+exit 1
+-----------------------------------
+
+To prevent handlers from being called on "foo.part" (which is moved to
+"foo" once the download is complete), add the following to the top of
+the watch block for Firefox's download directory.
+-----------------------------------
+*.part {
+			 handler = echo ignoring file: %%
+}
+-----------------------------------
+
+
 
 Real Example
 ------------
