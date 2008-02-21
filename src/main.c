@@ -175,6 +175,7 @@ void handle_child_signal()
 void handle_hup_signal()
 {
 	if (verbose) log_write("Received SIGHUP, reloading config file.\n");
+	keyval_section_free_all(config);
 	config = keyval_parse(configfile);
 	close(ifd);
 	free_watchnodes();
