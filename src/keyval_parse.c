@@ -68,7 +68,7 @@ static char * keyval_tokens_to_string(struct keyval_token * start,
 	strncpy(s, start->data, start->length);
 
 	start = start->next;
-	while (start != end->next) {
+	while (start && (start != end->next)) {
 		if (start->flags == KEYVAL_TOKEN_WHITESPACE) {
 			/* add a single space character */
 			s = realloc(s, s_alloc + 1);
@@ -165,6 +165,9 @@ struct keyval_node * keyval_parse_value(struct keyval_token ** token_) {
 						struct keyval_node * node = calloc(1, sizeof(struct keyval_node));;
 						token = token->next;
 						node->children = keyval_parse_list(&token);
+						if (!node->children) {
+							return 0;
+						}
 						*token_ = token;
 						return node;
 					}
@@ -173,6 +176,7 @@ struct keyval_node * keyval_parse_value(struct keyval_token ** token_) {
 						/* the value */
 						struct keyval_node * node = calloc(1, sizeof(struct keyval_node));
 						struct keyval_node * comment;
+						if (first == token->prev) return 0;
 						node->value = keyval_tokens_to_string(first, token->prev);
 						/* and the comment */
 						token = token->next;
@@ -231,8 +235,7 @@ struct keyval_node * keyval_parse_section(struct keyval_token ** token_) {
 							return 0;
 						}
 						head_node->children = keyval_node_append(head_node->children, node);
-						if (token) last = token->next;
-						token = token->next;
+						last = token = token->next;
 					}
 					break;
 				case '}':
@@ -258,12 +261,19 @@ struct keyval_node * keyval_parse_section(struct keyval_token ** token_) {
 					{
 						struct keyval_node * node;
 						struct keyval_token * t = token;
+						char * name = keyval_tokens_to_string(last, t->prev);
 						if (token->next) {
 							token = token->next;
 							node = keyval_parse_value(&token);
-							node->name = keyval_tokens_to_string(last, t->prev);
+							if (!node) goto no_value;
+							node->name = name;
 							head_node->children = keyval_node_append(head_node->children, node);
 							last = token->next;
+						} else {
+							/* error! */
+no_value:
+							keyval_append_error_va("keyval: error: expecting value after `%s =`\nkeyval: error: (on line %d)\n", name, t->line);
+							return 0;
 						}
 						break;
 					}
