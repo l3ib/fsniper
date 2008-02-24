@@ -4,7 +4,45 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdarg.h>
+
 #define PICESIZE 512
+
+static char * error = NULL;
+
+static void keyval_append_error(char * e) {
+	if (error) {
+		error = realloc(error, strlen(error) + strlen(e) + 1);
+		strcat(error, e);
+	} else {
+		error = strdup(e);
+	}
+}
+
+static void keyval_append_error_va(const char * format, ...) {
+	char * e = malloc(100 * sizeof(char));
+	size_t r;
+
+	va_list ap;
+	va_start(ap, format);
+	
+	r = vsnprintf(e, 100, format, ap);
+	e = realloc(e, r + 1);
+	if (r > 99) {
+		/* we need to do this again */
+		r = vsnprintf(e, r + 1, format, ap);
+	}
+	va_end(ap);
+	keyval_append_error(e);
+	free(e);
+}
+
+char * keyval_get_error(void) {
+	char * ret = error;
+	error = NULL;
+	
+	return ret;
+}
 
 /* take tokens from start to end (including end) and make a string out
  * of them. converts whitespace nodes to single spaces. */
@@ -13,9 +51,17 @@ static char * keyval_tokens_to_string(struct keyval_token * start,
 	char * s = 0;
 	size_t s_alloc = 1;
 
+
 	/* handle the first one manually, unless it's a space or newline */
-	while ((start->flags == KEYVAL_TOKEN_WHITESPACE) || (start->flags == KEYVAL_TOKEN_SEPARATOR && *start->data == '\n'))
+	while ((start->flags == KEYVAL_TOKEN_WHITESPACE) || (start->flags == KEYVAL_TOKEN_SEPARATOR && *start->data == '\n')) {
+		if (!start->next) return NULL;
 		start = start->next;
+	}
+
+	/* work backwards to find the first non-space token */
+	while (end->flags == KEYVAL_TOKEN_WHITESPACE || (end->flags == KEYVAL_TOKEN_SEPARATOR && *end->data == '\n')) {
+		end = end->prev;
+	}
 
 	s = calloc(start->length + 1, sizeof(char));
 	s_alloc = start->length + 1;
@@ -56,6 +102,7 @@ struct keyval_node * keyval_parse_comment(struct keyval_token ** token_) {
 				return node;
 			}
 		}
+
 		if (!token->next) {
 			/* trailing null means we're at the end of a file... */
 			struct keyval_node * node = calloc(1, sizeof(struct keyval_node));
@@ -178,6 +225,11 @@ struct keyval_node * keyval_parse_section(struct keyval_token ** token_) {
 						token = token->next;
 						node = keyval_parse_section(&token);
 						node->name = keyval_tokens_to_string(last, t->prev);
+						if (!token || !(token->flags == KEYVAL_TOKEN_SEPARATOR && *token->data == '}')) {
+							/* error! zomg! */
+							keyval_append_error_va("keyval: error: section `%s` never closed\nkeyval: error: (declared on line %d)\n", node->name, t->line);
+							return 0;
+						}
 						head_node->children = keyval_node_append(head_node->children, node);
 						if (token) last = token->next;
 						token = token->next;

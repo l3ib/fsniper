@@ -3,10 +3,8 @@
 
 #include "keyval_node.h"
 
-/* parses a config file, the infamous parser func */
 struct keyval_node * keyval_parse_file(const char * filename);
-
-/* parses a string */
 struct keyval_node * keyval_parse_string(char * data);
+char * keyval_get_error(void);
 
 #endif

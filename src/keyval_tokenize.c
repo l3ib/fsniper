@@ -26,22 +26,28 @@ static struct keyval_token * keyval_token_append(struct keyval_token * head,
 struct keyval_token * keyval_tokenize(char * s, char * separators) {
 	char * last = s; /* last non-separating non-space character */
 	struct keyval_token * token = 0;
+	size_t line = 1;
 	while (*s) {
 		enum keyval_token_flags flags = KEYVAL_TOKEN_NORMAL;
 		char * split_point = 0;
 		size_t length = 0;
+
+		if (*s == '\n') line++;
+
 		if (*s == '\\') {
 			/* take stuff to the left of this character */
 			struct keyval_token * a = calloc(1, sizeof(struct keyval_token));
 			a->data = last;
 			a->length = s - last;
 			a->flags = KEYVAL_TOKEN_NORMAL;
+			a->line = line;
 
 			if (token) keyval_token_append(token, a);
 			else token = keyval_token_append(token, a);
 
 			s += 2;
 			last = s - 1;
+			if (*last == '\n') line++;
 			continue;
 		}
 
@@ -69,11 +75,13 @@ struct keyval_token * keyval_tokenize(char * s, char * separators) {
 				a->data = last;
 				a->length = s - last;
 				a->flags = KEYVAL_TOKEN_NORMAL;
+				a->line = line;
 			}
 
 			b->data = s;
 			b->flags = flags;
 			b->length = length;
+			b->line = line;
 
 			last = s + length;
 

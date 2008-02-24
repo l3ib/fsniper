@@ -12,6 +12,7 @@ enum keyval_token_flags {
 struct keyval_token {
 	char * data;
 	size_t length;
+	size_t line;
 
 	enum keyval_token_flags flags;
 
