@@ -84,6 +84,19 @@ int test_list_comment(struct keyval_node * cfg) {
 		return 1;
 	}
 
+	if (!(comment = keyval_node_get_comment(element))) {
+		fprintf(stderr, "error: third element of `commented list` has no comment\n");
+		return 1;
+	}
+
+	if (strcmp(comment, "three")) {
+		fprintf(stderr, "error: third element of `commented list` has wrong comment\n");
+		free(comment);
+		return 1;
+	}
+
+	free(comment);
+
 	return 0;
 }
 
