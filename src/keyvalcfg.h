@@ -24,34 +24,34 @@
 
 /* used to generalize linked list functions. beware. tricks. */
 struct linked_list {
-	struct linked_list * first;
-	struct linked_list * next;
+    struct linked_list * first;
+    struct linked_list * next;
 };
 
 /* a linked list of key->value stuff. */
 
 struct keyval_pair {
-	struct keyval_pair * first;
-	struct keyval_pair * next;
+    struct keyval_pair * first;
+    struct keyval_pair * next;
 
-	char * key;
-	char * value;
+    char * key;
+    char * value;
 };
 
 /* a section of key->value pairs. the main section (the whole damn file)
  * has name = NULL. yes, i know you love nested sections. */
 struct keyval_section {
-	/* this is a linked list too. why? because you can have the same section
-	 * specified 100 times. each time with different values. blame that
-	 * bastard yates. this is used only for children. */
-	struct keyval_section * first;
-	struct keyval_section * next;
+    /* this is a linked list too. why? because you can have the same section
+     * specified 100 times. each time with different values. blame that
+     * bastard yates. this is used only for children. */
+    struct keyval_section * first;
+    struct keyval_section * next;
 
-	char * name;
-	struct keyval_pair * keyvals; /* the key->value pairs in this section. */
+    char * name;
+    struct keyval_pair * keyvals; /* the key->value pairs in this section. */
 
-	/* child sections */
-	struct keyval_section * children;
+    /* child sections */
+    struct keyval_section * children;
 };
 
 /* appends a new key->value pair to 'first'. returns the new pair. */
@@ -70,11 +70,11 @@ void keyval_pair_free_all(struct keyval_pair * keyval);
 
 /* finds the keyval_pair with key 'key'. returns NULL on failure. */
 struct keyval_pair * keyval_pair_find(struct keyval_pair * first,
-	char * key);
+                                      char * key);
 
 /* finds the keyval_section with name 'name', returns NULL on failure. */
 struct keyval_section * keyval_section_find(struct keyval_section * first,
-	char * name);
+                                            char * name);
 
 /* convenience functions for getting values. figure it out. */
 unsigned char keyval_pair_get_value_bool(struct keyval_pair * pair);
@@ -88,6 +88,6 @@ struct keyval_section * keyval_parse(const char * filename);
 /* writes the section data out to a file. returns 1 on success, 0 on
  * failure. if filename is NULL, writes to stdout. */
 unsigned char keyval_write(struct keyval_section * section,
-	const char * filename);
+                           const char * filename);
 
 #endif

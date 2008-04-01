@@ -21,51 +21,51 @@ extern int logtostdout;
 
 int log_open()
 {
-	char *configdir, *logfile;
-	configdir = get_config_dir();
+    char *configdir, *logfile;
+    configdir = get_config_dir();
 
-	if (!logtostdout)
-	{
-		logfile = malloc(strlen(configdir) + strlen("/log") + 1);
-		sprintf(logfile, "%s/log", configdir);
-		free(configdir);	
+    if (!logtostdout)
+    {
+        logfile = malloc(strlen(configdir) + strlen("/log") + 1);
+        sprintf(logfile, "%s/log", configdir);
+        free(configdir);	
 
-		_logfd = fopen(logfile, "w");
+        _logfd = fopen(logfile, "w");
 
-		free(logfile);
-	}
-	else
-		_logfd = stdout;
+        free(logfile);
+    }
+    else
+        _logfd = stdout;
 
-	if (_logfd)
-		log_write("Log opened\n");
+    if (_logfd)
+        log_write("Log opened\n");
 
-	return (_logfd != NULL);	
+    return (_logfd != NULL);	
 }
 
 int log_write(char *str, ...)
 {
-	va_list va;
-	int len;
-	time_t t;
-	char readabletime[30];
-	t = time(NULL);
-	strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
+    va_list va;
+    int len;
+    time_t t;
+    char readabletime[30];
+    t = time(NULL);
+    strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
 
-	fprintf(_logfd, "%s ", readabletime);
+    fprintf(_logfd, "%s ", readabletime);
 
-	va_start(va, str);
-	len = vfprintf(_logfd, str, va);
-	va_end(va);
+    va_start(va, str);
+    len = vfprintf(_logfd, str, va);
+    va_end(va);
 
-	fflush(_logfd);
-	return len;
+    fflush(_logfd);
+    return len;
 }
 
 int log_close()
 {
-	if (_logfd)
-		fclose(_logfd);
+    if (_logfd)
+        fclose(_logfd);
 
-	return 1;
+    return 1;
 }
