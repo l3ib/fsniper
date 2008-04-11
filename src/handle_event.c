@@ -6,7 +6,7 @@
 #include <fnmatch.h>
 #include <pcre.h>
 #include <magic.h>
-#include "keyvalcfg.h"
+#include "keyval_node.h"
 #include "watchnode.h"
 #include "util.h"
 #include "log.h"
@@ -19,7 +19,7 @@
 #include <efence.h>
 #endif
 
-extern struct keyval_section *config;
+extern struct keyval_node *config;
 extern struct watchnode *node;
 extern int verbose;
 extern int syncmode;
@@ -27,8 +27,8 @@ extern int logtostdout;
 
 extern void free_all_globals();
 
-static int get_delay_time(struct keyval_pair* kv);
-static int get_delay_repeats(struct keyval_pair* kv);
+static int get_delay_time(struct keyval_node* kv);
+static int get_delay_repeats(struct keyval_node* kv);
 static char* build_exec_line(char* handler, char* filename);
 static void write_out(int writefd, char* text);
 
@@ -59,8 +59,8 @@ void handle_event(struct inotify_event* event, int writefd)
     const char *mimetype;
     magic_t magic;
     int i, j, sysret, attempts;
-    struct keyval_section *child;
-    struct keyval_pair *handler;
+    struct keyval_node *child;
+    struct keyval_node *handler;
     pcre *regex;
     char *regex_str;
     const char *pcre_err;
@@ -193,7 +193,7 @@ void handle_event(struct inotify_event* event, int writefd)
 
 /* find the handlers which correspond to the mimetype, and continue executing them
    until we've run them all or one returns 0 */	
-    handler = child->keyvals;
+    handler = child->children;
 
     /* delay attempts are limited! */
     attempts = 0;
@@ -213,13 +213,13 @@ void handle_event(struct inotify_event* event, int writefd)
     free(scriptdir);
 
     /* get delay info */
-    delay_repeats = get_delay_repeats(child->keyvals);
-    delay_time = get_delay_time(child->keyvals);
+    delay_repeats = get_delay_repeats(child);
+    delay_time = get_delay_time(child);
 	
     while (handler && (attempts < delay_repeats || delay_repeats == 0))
     {
         /* if not a handler, skip it */
-        if (strcmp(handler->key, "handler") != 0)
+        if (strcmp(handler->name, "handler") != 0)
         {
             handler = handler->next;
             continue;
@@ -302,15 +302,15 @@ void handle_event(struct inotify_event* event, int writefd)
  * set, if not, it tries the root of the config to see if that same keypair is
  * set.  Failing that, it returns 300 (300 seconds, aka 5 minutes).
  */
-static int get_delay_time(struct keyval_pair* kv)
+static int get_delay_time(struct keyval_node* kv)
 {
-    struct keyval_pair* val;
+    struct keyval_node* val;
 
-    if ((val = keyval_pair_find(kv, "delay_time")))
-        return keyval_pair_get_value_int(val);
+    if ((val = keyval_node_find(kv, "delay_time")))
+        return keyval_node_get_value_int(val);
 
-    if ((val = keyval_pair_find(config->keyvals, "delay_time")))
-        return keyval_pair_get_value_int(val);
+    if ((val = keyval_node_find(config, "delay_time")))
+        return keyval_node_get_value_int(val);
 
     /* 5 minute default */
     return 300; 
@@ -329,15 +329,15 @@ static int get_delay_time(struct keyval_pair* kv)
  * A value of 0 returned from this function means it should keep looping
  * indefinetely.
  */
-static int get_delay_repeats(struct keyval_pair* kv)
+static int get_delay_repeats(struct keyval_node* kv)
 {
-    struct keyval_pair* val;
+    struct keyval_node* val;
 
-    if ((val = keyval_pair_find(kv, "delay_repeats")))
-        return keyval_pair_get_value_int(val);
+    if ((val = keyval_node_find(kv, "delay_repeats")))
+        return keyval_node_get_value_int(val);
 
-    if ((val = keyval_pair_find(config->keyvals, "delay_repeats")))
-        return keyval_pair_get_value_int(val);
+    if ((val = keyval_node_find(config, "delay_repeats")))
+        return keyval_node_get_value_int(val);
 
     return 0;
 }

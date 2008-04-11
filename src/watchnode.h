@@ -2,6 +2,6 @@ struct watchnode
 {
     int wd;
     char* path;
-    struct keyval_section* section;
+    struct keyval_node* section;
     struct watchnode* next;
 };

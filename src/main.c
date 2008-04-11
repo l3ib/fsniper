@@ -11,7 +11,7 @@
 #include <string.h>
 #include <errno.h>
 #include <pwd.h>
-#include "keyvalcfg.h"
+#include "keyval_parse.h"
 #include "argparser.h"
 #include "watchnode.h"
 #include "add_watches.h"
@@ -37,7 +37,7 @@ extern FILE* _logfd;
 #define BUF_LEN        (1024 * (EVENT_SIZE + 16))
 
 /* one global config */ 
-struct keyval_section *config = NULL; 
+struct keyval_node *config = NULL; 
 
 /* global watchnode */
 struct watchnode *node = NULL;
@@ -102,7 +102,7 @@ void free_all_globals()
     struct pipe_list* tmp_pipe;
 
     /* free config here */ 
-    keyval_section_free_all(config);
+    keyval_node_free_all(config);
 
     /* free watchnode elements */
     free_watchnodes();
@@ -175,8 +175,8 @@ void handle_child_signal()
 void handle_hup_signal()
 {
     log_write("Received SIGHUP, reloading config file.\n");
-    keyval_section_free_all(config);
-    config = keyval_parse(configfile);
+    keyval_node_free_all(config);
+    config = keyval_parse_file(configfile);
     close(ifd);
     free_watchnodes();
     ifd = inotify_init();
@@ -376,7 +376,7 @@ int main(int argc, char** argv)
     }
 
     if (verbose) log_write("Parsing config file: %s\n", configfile);
-    config = keyval_parse(configfile);
+    config = keyval_parse_file(configfile);
 
     /* add nodes to the inotify descriptor */
     node = add_watches(ifd);
