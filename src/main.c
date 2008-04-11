@@ -174,9 +174,15 @@ void handle_child_signal()
 /* handler for HUP. reloads the config file. */
 void handle_hup_signal()
 {
+	char * error;
     log_write("Received SIGHUP, reloading config file.\n");
     keyval_node_free_all(config);
     config = keyval_parse_file(configfile);
+		if ((error = keyval_get_error())) {
+			fprintf(stderr, "%s", error);
+			free(error);
+			exit(1);
+		}
     close(ifd);
     free_watchnodes();
     ifd = inotify_init();
@@ -377,6 +383,11 @@ int main(int argc, char** argv)
 
     if (verbose) log_write("Parsing config file: %s\n", configfile);
     config = keyval_parse_file(configfile);
+		if ((error_str = keyval_get_error())) {
+			fprintf(stderr, "%s", error_str);
+			free(error_str);
+			exit(1);
+		}
 
     /* add nodes to the inotify descriptor */
     node = add_watches(ifd);
