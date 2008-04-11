@@ -116,3 +116,8 @@ struct keyval_token * keyval_tokenize(char * s, char * separators) {
 
 	return token->head;
 }
+
+void keyval_token_free_all(struct keyval_token * token) {
+	if (token->next) keyval_token_free_all(token->next);
+	free(token);
+}

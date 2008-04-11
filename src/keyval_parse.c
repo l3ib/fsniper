@@ -8,7 +8,7 @@
 
 #define PICESIZE 512
 
-static char * error = NULL;
+static char * error = 0;
 
 static void keyval_append_error(char * e) {
 	if (error) {
@@ -39,7 +39,7 @@ static void keyval_append_error_va(const char * format, ...) {
 
 char * keyval_get_error(void) {
 	char * ret = error;
-	error = NULL;
+	error = 0;
 	
 	return ret;
 }
@@ -54,7 +54,7 @@ static char * keyval_tokens_to_string(struct keyval_token * start,
 
 	/* handle the first one manually, unless it's a space or newline */
 	while ((start->flags == KEYVAL_TOKEN_WHITESPACE) || (start->flags == KEYVAL_TOKEN_SEPARATOR && *start->data == '\n')) {
-		if (!start->next) return NULL;
+		if (!start->next) return 0;
 		start = start->next;
 	}
 
@@ -150,6 +150,8 @@ struct keyval_node * keyval_parse_list(struct keyval_token ** token_) {
 
 	/* ran out of tokens... error */
 
+	if (head) keyval_node_free_all(head);
+
 	return 0;
 }
 
@@ -162,10 +164,11 @@ struct keyval_node * keyval_parse_value(struct keyval_token ** token_) {
 			switch (*token->data) {
 				case '[':
 					if (token->next) {
-						struct keyval_node * node = calloc(1, sizeof(struct keyval_node));;
+						struct keyval_node * node = calloc(1, sizeof(struct keyval_node));
 						token = token->next;
 						node->children = keyval_parse_list(&token);
 						if (!node->children) {
+							free(node);
 							return 0;
 						}
 						*token_ = token;
@@ -174,9 +177,11 @@ struct keyval_node * keyval_parse_value(struct keyval_token ** token_) {
 				case '#':
 					{
 						/* the value */
-						struct keyval_node * node = calloc(1, sizeof(struct keyval_node));
+						struct keyval_node * node;
 						struct keyval_node * comment;
 						if (first == token->prev) return 0;
+
+						node = calloc(1, sizeof(struct keyval_node));
 						node->value = keyval_tokens_to_string(first, token->prev);
 						/* and the comment */
 						token = token->next;
@@ -190,8 +195,13 @@ struct keyval_node * keyval_parse_value(struct keyval_token ** token_) {
 				case '}':
 					{
 						/* the end! */
-						struct keyval_node * node = calloc(1, sizeof(struct keyval_node));
+						struct keyval_node * node;
+						node = calloc(1, sizeof(struct keyval_node));
 						node->value = keyval_tokens_to_string(first, token->prev);
+						if (!node->value) {
+							free(node);
+							return 0;
+						}
 						*token_ = token;
 						return node;
 					}
@@ -232,6 +242,8 @@ struct keyval_node * keyval_parse_section(struct keyval_token ** token_) {
 						if (!token || !(token->flags == KEYVAL_TOKEN_SEPARATOR && *token->data == '}')) {
 							/* error! zomg! */
 							keyval_append_error_va("keyval: error: section `%s` never closed\nkeyval: error: (declared on line %d)\n", node->name, t->line);
+							keyval_node_free_all(head_node);
+							keyval_node_free_all(node);
 							return 0;
 						}
 						head_node->children = keyval_node_append(head_node->children, node);
@@ -271,8 +283,10 @@ struct keyval_node * keyval_parse_section(struct keyval_token ** token_) {
 							last = token->next;
 						} else {
 							/* error! */
-no_value:
+						no_value:
+							keyval_node_free_all(head_node);
 							keyval_append_error_va("keyval: error: expecting value after `%s =`\nkeyval: error: (on line %d)\n", name, t->line);
+							free(name);
 							return 0;
 						}
 						break;
@@ -295,12 +309,13 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 
 	struct keyval_node * node;
 
-	if (!file) return NULL;
+	if (!file) return 0;
 
 	while (fgets(buf, PICESIZE, file)) {
 		data = realloc(data, strlen(data) + strlen(buf) + 1);
 		data = strcat(data, buf);
 	}
+
 	fclose(file);
 
 	node = keyval_parse_string(data);
@@ -311,7 +326,10 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 
 struct keyval_node * keyval_parse_string(char * data) {
 	struct keyval_token * token = keyval_tokenize(data, "{}#=\n[],");
+	struct keyval_token * token_old = token;
 	struct keyval_node * node = keyval_parse_section(&token);
+
+	keyval_token_free_all(token_old);
 
 	return node;
 }

@@ -25,4 +25,6 @@ struct keyval_token {
  * token. things are automatically split by whitespace. */
 struct keyval_token * keyval_tokenize(char * s, char * separators);
 
+void keyval_token_free_all(struct keyval_token * token);
+
 #endif
