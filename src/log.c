@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -20,48 +21,51 @@ extern int logtostdout;
 
 int log_open()
 {
-	char *configdir, *logfile;
-	configdir = get_config_dir();
+    char *configdir, *logfile;
+    configdir = get_config_dir();
 
-	logfile = malloc(strlen(configdir) + strlen("/log") + 1);
-	sprintf(logfile, "%s/log", configdir);
-	free(configdir);	
+    if (!logtostdout)
+    {
+        logfile = malloc(strlen(configdir) + strlen("/log") + 1);
+        sprintf(logfile, "%s/log", configdir);
+        free(configdir);	
 
-	_logfd = fopen(logfile, "w");
+        _logfd = fopen(logfile, "w");
 
-	free(logfile);
+        free(logfile);
+    }
+    else
+        _logfd = stdout;
 
-	if (_logfd)
-		log_write("Log opened\n");
+    if (_logfd)
+        log_write("Log opened\n");
 
-	return (_logfd != NULL);	
+    return (_logfd != NULL);	
 }
 
 int log_write(char *str, ...)
 {
-	va_list va;
-	int len;
-	time_t t;
-	char readabletime[30];
-	t = time(NULL);
-	strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
-	
-	fprintf(_logfd, "%s ", readabletime);
-	if (logtostdout) fprintf(stdout, "%s ", readabletime);
+    va_list va;
+    int len;
+    time_t t;
+    char readabletime[30];
+    t = time(NULL);
+    strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
 
-	va_start(va, str);
-	len = vfprintf(_logfd, str, va);
-	if (logtostdout) len = vfprintf(stdout, str, va);
-	va_end(va);
+    fprintf(_logfd, "%s ", readabletime);
 
-	fflush(_logfd);
-	return len;
+    va_start(va, str);
+    len = vfprintf(_logfd, str, va);
+    va_end(va);
+
+    fflush(_logfd);
+    return len;
 }
 
 int log_close()
 {
-	if (_logfd)
-		fclose(_logfd);
+    if (_logfd)
+        fclose(_logfd);
 
-	return 1;
+    return 1;
 }

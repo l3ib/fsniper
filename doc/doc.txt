@@ -1,0 +1,318 @@
+fsniper documentation
+=====================
+Dave Foster <daf@minuslab.net>
+v1.0, 27 Dec 2007
+
+fsniper is a utility that waits for a file to be changed or created,
+and then executes a command on that file.
+
+About
+-----
+
+fsniper was inspired by the need to watch a directory for certain types of 
+files and move them to their appropriate location.  I wanted a utility that
+could intelligently figure out what type of file I was putting in that 
+directory, and move it to where it needed to go.  For example:
+
+- Image files in standard background sizes/ratios should be moved to 
+  /home/daf/media/bg
+- tar files containing openbox or gtk themes should be extracted to 
+  /home/daf/.themes
+- Image files not matching standard background sizes/ratios should be
+  moved to /home/daf/media
+- Torrent files should be scp'd to my server, where rtorrent will 
+  automatically start downloading them
+
+See the RealExample section below.
+
+Writing simple handling scripts, fsniper can detect these files when
+they are written and those scripts are called.
+
+Technical Details
+-----------------
+
+fsniper uses inotify to watch for when a file is closed after being written
+to.  This means utilities such as touch will cause the event to trigger.
+
+fsniper can watch any number of directories for any number of pattern 
+matches on the files.  (Technically, it can only watch up to the limit
+of inotify, which is typically 8192 dirs.)
+
+Example Configuration File
+--------------------------
+
+Let's jump into an example configuration file.
+
+-----------------------------------------
+watch {
+
+    ~/tmp/s {
+        image/* {
+            handler = echo image file:
+        }
+
+        *.extension {
+            handler = ./foo a %% b
+            handler = mv %% arc-%%.txt
+        }
+
+        /.*regex.*/ {
+            handler = ./bar a %% b
+        }
+
+        */* {
+            handler = echo file:
+        }
+    }
+
+}
+-----------------------------------------
+
+To start defining directories to watch, you must have a watch block.  Each
+block underneath a watch block is a directory that fsniper monitors for files
+that are closed (and that had previously been opened for writing).  
+
+In this configuration, we are watching only one dir, ~/tmp/s.  Underneath that
+directory block, we are watching for 4 different patterns of files.  The first
+pattern, image/*, looks for files that match a mime-type pattern.  Any image 
+file will go into this block.  The handler is echo, a standard system command
+that writes to stdout.  fsniper looks for "%%" in the handler line.  The name
+of the file that was just closed is substituted in for the %%.  If no %% is 
+found in the handler line, it appends the filename on the end.
+
+The second pattern, *.extension, matches a shell glob for any file with the 
+.extension extension.  This pattern has two handlers.  ./foo is a custom 
+script we write.  If that script returns a return code that is not 0 or 2,
+it moves on to the next handler.  See the Handler Return Codes section.
+
+The third pattern, /.*regex.*/, matches the file name against a regular 
+expression pattern.  PCRE support must be compiled in for this pattern to 
+work.
+
+The fourth pattern, */*, matches any file (by mime-type wildcards).  You could
+also use *, which would be a file glob.
+
+Configuration
+-------------
+
+This section details all the available configuration options.
+
+Matching Patterns
+~~~~~~~~~~~~~~~~~
+
+There are three types of patterns that fsniper can match against.
+
+Mime-Types
+^^^^^^^^^^
+fsniper can match mime-types, like text/plain, image/png, etc.  You can use the
+file utility to figure out the mime-type. Use file -ib to get the mime-type 
+that fsniper sees.  
+
+You can also have wildcards on each side of the mime-type, so image/* would 
+match all images, etc.
+
+Shell Globs
+^^^^^^^^^^^
+The most common pattern would be shell globs, like *.txt or *.html.  This matches
+any shell-like file pattern.
+
+Regular Expressions
+^^^^^^^^^^^^^^^^^^^
+fsniper can be compiled with PCRE support to allow more complicated regular
+expression matching.  Regex patterns are enclosed in forward slashes.  Consult
+the PCRE documentation for the flavor of regular expressions supported.  Remember, 
+the entire filename (including path) is matched against the regex.
+
+Handlers
+~~~~~~~~
+
+The handler scripts do not always have to be custom written.  You can use the
+%% replacement to do some script-like behavior.  For example, this handler line:
+
+----------------
+handler = tar cvz archive-%%.tar.gz %%
+----------------
+
+Creates a tar.gz file containing the file that matches the file pattern.
+
+Often, custom scripts are easier if they need to perform some complicated 
+tests or if they need to indicate that they will delay.
+
+Handler Search Paths
+~~~~~~~~~~~~~~~~~~~~
+
+Since fsniper uses the shell to execute handlers, the shell's PATH environment
+variable is respected to find the handlers.  fsniper automatically prepends
+~/.config/fsniper/scripts to PATH, so it is common to place custom scripts
+in that directory.
+
+Handler Return Codes
+~~~~~~~~~~~~~~~~~~~~
+
+- 0 : the handler handled this file.
+- 2 : the handler will handle this event, but not right now.  Retry again later.
+- other: this handler can not handle this file. The next handler (if
+one exists) will be tried.
+
+Delays
+~~~~~~
+
+It is possible that a handler can handle a file, but not at this moment.  A
+common example would be that the handler is supposed to scp a file to a remote
+server, but that server is currently not available.  The handler script returns
+a 2 to indicate that it can handle it, just not right now.  fsniper detects 
+this return code and sleeps for a period of time, then retries the handler.
+
+There are two parameters that control delay handling.  These parameters are
+placed in the configuration file on the top level, that is, the same level 
+as the watch block.
+
+- delay_time : the amount of time, in seconds, to wait before trying the handler
+  again.  If not specified, it defaults to 300, which is 5 minutes.
+- delay_repeats : the number of repeats it should try before giving up.  This can 
+  be 0, meaning infinite retries.
+
+fsniper Files
+-------------
+
+By default, fsniper tries to load its configuration from ~/.config/fsniper/config.
+You can override this by specifying a configuration file on the command line.
+
+fsniper keeps a log file in ~/.config/sniper/log.  You can use tail -f to monitor
+fsniper's output.
+
+Command Line Options
+--------------------
+
+--------------------
+	--help
+		Prints this help text.
+	--version
+		Prints version information.
+	--daemon
+		Run as a daemon.
+	--verbose
+		Turns on debug text.
+	--sync
+		Sync mode (for debugging).
+	--log-to-stdout
+		Log to stdout alongside the usual log file.
+--------------------
+
+Special Note: Firefox
+---------------------
+When dowloading a file named "foo", Firefox creates a "foo" with size
+0 and a "foo.part" in the download directory. "foo" is closed for
+writing immediately after being created, so fsniper will attempt to
+run the appropriate handlers on it. Use the following Firefox
+handler before any other handlers to prevent later handlers
+from running on this incomplete "foo" file.
+
+-----------------------------------
+#!/bin/bash
+# Handler to prevent later handlers from being called on temporary Firefox files
+
+args="$*"
+length=`expr length "$*"`
+size=`du "${args}" | awk '{print $1'}`
+
+# if this is "foo" and "foo.part" exists, firefox is still downloading foo
+# so we ignore it for now. it will be closed and the handler called again
+# once the download finishes.
+if [[ -e "${args}.part" && "$size" -eq "0" ]]
+then
+  exit 0
+fi
+
+exit 1
+-----------------------------------
+
+To prevent handlers from being called on "foo.part" (which is moved to
+"foo" once the download is complete), add the following to the top of
+the watch block for Firefox's download directory.
+-----------------------------------
+*.part {
+			 handler = echo ignoring file: %%
+}
+-----------------------------------
+
+
+
+Real Example
+------------
+
+Above, we talked about a list of actions to take on some files.  Let's take
+a look at an example configuration file, and the associated handlers which 
+perform those actions.
+
+----------------------------------
+watch {
+    ~/tmp/drop {                                 (1)
+        image/* {                                (2)
+            handler = bg.pl                      (3)
+            handler = mv %% ~/media              (4)
+        }
+        /\.(bz2|gz)$/ {                          (5)
+            handler = theme.pl                   (6)
+        }
+    }
+
+    ~/torrants {
+        application/x-bittorrent {
+                handler = torrent.pl             (7)
+        }
+    }
+}
+-----------------------------------
+
+So in our watch block, we're watching two directories, \~/tmp/drop and
+\~/torrants, as denoted at location 1.  
+
+First, we want to look at any image that gets placed into this directory.
+We match against the image/\* mime-type, which means anything which falls 
+into the image mime-type category.  This is denoted at location 2.
+
+Order of your rules is important.  They are executed in order from first to
+last, so put the most scrutinizing handlers first.  The first thing we are
+going to do, denoted by location 3, is test an image file to see if it is a 
+background image, and move it to my backgrounds folder.  This is at location
+3.
+
+[caption="Listing: "]
+.bg.pl
+----------------------------
+#!/usr/bin/perl
+
+# requires identify from imagemagick
+
+# if no arg, exit
+exit 1 if scalar(@ARGV) != 1;
+
+# get resolution of the image
+($resw, $resh) = split /x/, (split / /, `identify $ARGV[0]`)[2];
+
+# grep against standard horizontal pixel dimensions
+$times = grep /^$resw$/, (1024, 1280, 1440, 1600, 1680, 1920, 2560);
+
+# if we had a grep match, move it and exit
+if ($times > 0)
+{
+    `mv $ARGV[0] ~/media/bgs`;
+    exit 0;
+}
+
+# could not deal with it, let fsniper know to pass it in
+exit 1;
+------------------------------
+
+Basically, the script looks at the dimensions, and tries to figure out if it
+is a standard background size.  If so, it moves it to the \~/media/bg directory.
+Then, it exits with the exit code 0.  This tells fsniper that this script 
+handled the file, and don't run any more handlers.
+
+If it didn't end up handling the file, we return 1 from the handler.  This 
+tells fsniper to move on to the next handler in the list, which is at location
+4.  We've inlined a simple move command here which moves any image file to the
+\~/media directory.
+
+

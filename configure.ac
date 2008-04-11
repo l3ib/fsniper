@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT([sniper], [git], [andrew@andrewyates.net])
+AC_INIT([fsniper], [git], [andrew@andrewyates.net])
 AM_MAINTAINER_MODE
 AC_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
