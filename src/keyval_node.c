@@ -1,5 +1,7 @@
 #include "keyval_node.h"
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 struct keyval_node * keyval_node_append(struct keyval_node * head,
 		struct keyval_node * node) {
