@@ -305,11 +305,16 @@ struct keyval_node * keyval_parse_section(struct keyval_token ** token_) {
 struct keyval_node * keyval_parse_file(const char * filename) {
 	char buf[PICESIZE];
 	FILE * file = fopen(filename, "r");
-	char * data = calloc(PICESIZE, sizeof(char));
+	char * data;
 
 	struct keyval_node * node;
 
-	if (!file) return 0;
+	if (!file) {
+		keyval_append_error_va("keyval: error: could not open file `%s'\n", filename);
+		return 0;
+	}
+
+	data = calloc(PICESIZE, sizeof(char));
 
 	while (fgets(buf, PICESIZE, file)) {
 		data = realloc(data, strlen(data) + strlen(buf) + 1);
@@ -324,7 +329,7 @@ struct keyval_node * keyval_parse_file(const char * filename) {
 	return node;
 }
 
-struct keyval_node * keyval_parse_string(char * data) {
+struct keyval_node * keyval_parse_string(const char * data) {
 	struct keyval_token * token = keyval_tokenize(data, "{}#=\n[],");
 	struct keyval_token * token_old = token;
 	struct keyval_node * node = keyval_parse_section(&token);

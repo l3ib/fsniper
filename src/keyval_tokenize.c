@@ -23,13 +23,13 @@ static struct keyval_token * keyval_token_append(struct keyval_token * head,
 	return head->head;
 }
 
-struct keyval_token * keyval_tokenize(char * s, char * separators) {
-	char * last = s; /* last non-separating non-space character */
+struct keyval_token * keyval_tokenize(const char * s, char * separators) {
+	const char * last = s; /* last non-separating non-space character */
 	struct keyval_token * token = 0;
 	size_t line = 1;
 	while (*s) {
 		enum keyval_token_flags flags = KEYVAL_TOKEN_NORMAL;
-		char * split_point = 0;
+		const char * split_point = 0;
 		size_t length = 0;
 
 		if (*s == '\n') line++;

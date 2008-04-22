@@ -10,7 +10,7 @@ enum keyval_token_flags {
 };
 
 struct keyval_token {
-	char * data;
+	const char * data;
 	size_t length;
 	size_t line;
 
@@ -23,7 +23,7 @@ struct keyval_token {
 
 /* separates s into pieces, with each character of separators getting its own
  * token. things are automatically split by whitespace. */
-struct keyval_token * keyval_tokenize(char * s, char * separators);
+struct keyval_token * keyval_tokenize(const char * s, char * separators);
 
 void keyval_token_free_all(struct keyval_token * token);
 

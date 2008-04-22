@@ -4,7 +4,7 @@
 #include "keyval_node.h"
 
 struct keyval_node * keyval_parse_file(const char * filename);
-struct keyval_node * keyval_parse_string(char * data);
+struct keyval_node * keyval_parse_string(const char * data);
 char * keyval_get_error(void);
 
 #endif
