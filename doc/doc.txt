@@ -315,4 +315,77 @@ tells fsniper to move on to the next handler in the list, which is at location
 4.  We've inlined a simple move command here which moves any image file to the
 \~/media directory.
 
+Location 5 handles either files ending in bz2 or gz, which are typically tar
+archives.  Location 6 details a script which will analyze the archive file to
+see if it contains an openbox or gtk theme (meant to be put in $HOME/.themes),
+and automatically extracts that archive there.
+
+[caption="Listing: "]
+.theme.pl
+----------------------------
+#!/usr/bin/perl
+
+# requires tar (haha)
+# looks for a tar archive that has a directory entry that ends in
+# openbox-3/ or gtk-2.0/
+
+# make sure we got a file arg
+exit 1 if scalar(@ARGV) != 1;
+
+# get a file listing from tar
+@list = `tar -tf $ARGV[0]`;
+
+# see if we have an openbox-3 theme or a gtk-2.0 theme
+$oblist = grep /\/openbox-3\/$/, @list;
+$gtklist = grep /\/gtk-2.0\/$/, @list;
+
+# if we got a hit, extract it and exit
+if ($oblist > 0 || $gtklist > 0)
+{
+    # figure out the extraction option (bz2 versus gz)
+    $exopt = "j" if $ARGV[0] =~ /\.bz2$/;
+    $exopt = "z" if $exopt ne "j";
+
+    # extract, move the archive, and exit
+    `tar xf$exopt $ARGV[0] -C ~/.themes/`;
+    `mv $ARGV[0] ~/downloads/`;
+    exit 0;
+}
+
+# made it here means its not a theme archive
+exit 1;
+----------------------
+
+If the script reaches the end and exits with 1, the file is simply left in
+that directory.  Fsniper will not touch it again unless it is closed for writing,
+which can be done with the "touch" command at the simplest.
+
+Listing 7 automatically transfers torrent files to my torrent server, where
+I rely on rtorrent to pick up its existance and start running the file.  The 
+script is essentially a simple scp operation followed by a rm on the torrent
+file.
+
+[caption="Listing: "]
+.torrent.pl
+----------------------------
+#!/usr/bin/perl
+
+exit -1 if (!scalar(@ARGV)>0);
+
+`scp '$ARGV[0]' pintsize:~/torrents/`;
+`rm '$ARGV[0]'`;
+
+exit 0;
+----------------------------
+
+Here, pintsize is the name of my server.
+
+Contact
+-------
+
+If you need support, drop by #l3ib on irc.freenode.net and contact anyone there.
+You can also directly report bugs at http://bugs.l3ib.org, but we probably won't
+even see it unless you bring it up with us on IRC.
+
+Alternatively, email the author of this document.
 
