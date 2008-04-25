@@ -1,0 +1,5 @@
+{
+   mysterious ld errors
+   Memcheck:Cond
+   obj:/lib/ld-2.6.so
+}

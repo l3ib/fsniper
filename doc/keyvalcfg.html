@@ -1,0 +1,684 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 8.1.0" />
+<style type="text/css">
+/* Debug borders */
+p, li, dt, dd, div, pre, h1, h2, h3, h4, h5, h6 {
+/*
+  border: 1px solid red;
+*/
+}
+
+body {
+  margin: 1em 5% 1em 5%;
+}
+
+a {
+  color: blue;
+  text-decoration: underline;
+}
+a:visited {
+  color: fuchsia;
+}
+
+em {
+  font-style: italic;
+}
+
+strong {
+  font-weight: bold;
+}
+
+tt {
+  color: navy;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #527bbd;
+  font-family: sans-serif;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+h1 {
+  border-bottom: 2px solid silver;
+}
+h2 {
+  border-bottom: 2px solid silver;
+  padding-top: 0.5em;
+}
+
+div.sectionbody {
+  font-family: serif;
+  margin-left: 0;
+}
+
+hr {
+  border: 1px solid silver;
+}
+
+p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+pre {
+  padding: 0;
+  margin: 0;
+}
+
+span#author {
+  color: #527bbd;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+span#email {
+}
+span#revision {
+  font-family: sans-serif;
+}
+
+div#footer {
+  font-family: sans-serif;
+  font-size: small;
+  border-top: 2px solid silver;
+  padding-top: 0.5em;
+  margin-top: 4.0em;
+}
+div#footer-text {
+  float: left;
+  padding-bottom: 0.5em;
+}
+div#footer-badges {
+  float: right;
+  padding-bottom: 0.5em;
+}
+
+div#preamble,
+div.tableblock, div.imageblock, div.exampleblock, div.verseblock,
+div.quoteblock, div.literalblock, div.listingblock, div.sidebarblock,
+div.admonitionblock {
+  margin-right: 10%;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+div.admonitionblock {
+  margin-top: 2.5em;
+  margin-bottom: 2.5em;
+}
+
+div.content { /* Block element content. */
+  padding: 0;
+}
+
+/* Block element titles. */
+div.title, caption.title {
+  font-family: sans-serif;
+  font-weight: bold;
+  text-align: left;
+  margin-top: 1.0em;
+  margin-bottom: 0.5em;
+}
+div.title + * {
+  margin-top: 0;
+}
+
+td div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content + div.title {
+  margin-top: 0.0em;
+}
+
+div.sidebarblock > div.content {
+  background: #ffffee;
+  border: 1px solid silver;
+  padding: 0.5em;
+}
+
+div.listingblock {
+  margin-right: 0%;
+}
+div.listingblock > div.content {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  padding: 0.5em;
+}
+
+div.quoteblock > div.content {
+  padding-left: 2.0em;
+}
+
+div.attribution {
+  text-align: right;
+}
+div.verseblock + div.attribution {
+  text-align: left;
+}
+
+div.admonitionblock .icon {
+  vertical-align: top;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-decoration: underline;
+  color: #527bbd;
+  padding-right: 0.5em;
+}
+div.admonitionblock td.content {
+  padding-left: 0.5em;
+  border-left: 2px solid silver;
+}
+
+div.exampleblock > div.content {
+  border-left: 2px solid silver;
+  padding: 0.5em;
+}
+
+div.verseblock div.content {
+  white-space: pre;
+}
+
+div.imageblock div.content { padding-left: 0; }
+div.imageblock img { border: 1px solid silver; }
+span.image img { border-style: none; }
+
+dl {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+dt {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+  font-style: italic;
+}
+dd > *:first-child {
+  margin-top: 0;
+}
+
+ul, ol {
+    list-style-position: outside;
+}
+ol.olist2 {
+  list-style-type: lower-alpha;
+}
+
+div.tableblock > table {
+  border: 3px solid #527bbd;
+}
+thead {
+  font-family: sans-serif;
+  font-weight: bold;
+}
+tfoot {
+  font-weight: bold;
+}
+
+div.hlist {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+td.hlist1 {
+  vertical-align: top;
+  font-style: italic;
+  padding-right: 0.8em;
+}
+td.hlist2 {
+  vertical-align: top;
+}
+
+@media print {
+  div#footer-badges { display: none; }
+}
+
+div#toctitle {
+  color: #527bbd;
+  font-family: sans-serif;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 1.0em;
+  margin-bottom: 0.1em;
+}
+
+div.toclevel1, div.toclevel2 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+div.toclevel2 {
+  margin-left: 2em;
+}
+/* Workarounds for IE6's broken and incomplete CSS2. */
+
+div.sidebar-content {
+  background: #ffffee;
+  border: 1px solid silver;
+  padding: 0.5em;
+}
+div.sidebar-title, div.image-title {
+  font-family: sans-serif;
+  font-weight: bold;
+  margin-top: 0.0em;
+  margin-bottom: 0.5em;
+}
+
+div.listingblock div.content {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  padding: 0.5em;
+}
+
+div.quoteblock-content {
+  padding-left: 2.0em;
+}
+
+div.exampleblock-content {
+  border-left: 2px solid silver;
+  padding-left: 0.5em;
+}
+
+/* IE6 sets dynamically generated links as visited. */
+div#toc a:visited { color: blue; }
+</style>
+<title>Using the keyvalcfg Configuration Parser</title>
+</head>
+<body>
+<div id="header">
+<h1>Using the keyvalcfg Configuration Parser</h1>
+<span id="author">Javeed Shaikh</span><br />
+<span id="email"><tt>&lt;<a href="mailto:syscrash2k@gmail.com">syscrash2k@gmail.com</a>&gt;</tt></span><br />
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<p>The keyvalcfg configuration parser allows one to parse simple human-readable
+plain text configuration files from the C programming language.</p>
+</div>
+</div>
+<h2>Configuration File Syntax</h2>
+<div class="sectionbody">
+<h3><a id="first-example"></a>A First Example</h3>
+<div class="literalblock">
+<div class="title">Sample Configuration File</div>
+<div class="content">
+<pre><tt>rationals { <b>(1)</b>
+        # i couldn't come up with anything more clever than these... <b>(2)</b>
+        zero = 0
+        unity = 1 <b>(3)</b>
+}
+
+irrationals {
+        pi = 3.14159265358979 # ratio of the circumference to the diameter of a circle
+        root two = 1.4142135623731 # positive solution to x^2 = 2
+
+        favourites {
+                golden ratio = 1.61803399
+        }
+}
+
+# some simple lists
+even numbers = [2, 4, 6, 8, 10, ...] <b>(4)</b>
+odd numbers = [1, 3, 5, 7, <b>(5)</b>
+               9, 11, ...]
+# a sample boolean
+this parser rocks = true # haha, sure</tt></pre>
+</div></div>
+<ol>
+<li>
+<p>
+A section, <tt>rationals</tt>, is opened.
+</p>
+</li>
+<li>
+<p>
+A comment.
+</p>
+</li>
+<li>
+<p>
+<tt>unity</tt> is set to 1.
+</p>
+</li>
+<li>
+<p>
+A list is declared.
+</p>
+</li>
+<li>
+<p>
+A list can span multiple lines.
+</p>
+</li>
+</ol>
+<h3>Analysis</h3>
+<p>The above example illustrates some of several important features. Here are
+the important ones:</p>
+<ul>
+<li>
+<p>
+Sections are opened and closed using curly braces, <tt>{</tt> and <tt>}</tt>, and can
+         contain other sections.
+</p>
+</li>
+<li>
+<p>
+Comments are started using the <tt>#</tt> character and continue until the end of
+         the line.
+</p>
+</li>
+<li>
+<p>
+Key-value pairs are specified using the syntax <tt>key = value</tt>.
+</p>
+</li>
+<li>
+<p>
+Lists begin with <tt>[</tt> and end with <tt>]</tt>. Their values are separated by <tt>,</tt>
+         characters. They can span multiple lines.
+</p>
+</li>
+<li>
+<p>
+The <em>\</em> character is used as an escape character. Any character following
+   a <em>\</em> will be treated literally. This can allow values to contain
+         newline characters and otherwise special characters.
+</p>
+</li>
+</ul>
+<p>In fact, that was probably everything that someone interested only in reading
+and writing configuration files by hand (a non-developer) would need to know.</p>
+</div>
+<h2>Using the Parser</h2>
+<div class="sectionbody">
+<p>If you're interested in using the parser in one of your C programs, this section
+is for you. Fear not, for the parser is relatively easy to use.</p>
+<h3>The Principal Node Structure</h3>
+<p>Every section and key-value pair is termed a <em>node</em>. The structure used to
+represent a node is <tt>struct keyval_node</tt>. The structure definition follows.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>struct</strong> keyval_node {
+<i>        /* the name of the key or section. can be NULL. */</i>
+        <strong>char</strong> * name;
+
+<i>        /* if this is a simple key-value pair, this contains the value. if this is</i>
+<i>         * a section or just a comment, the value is NULL. */</i>
+        <strong>char</strong> * value;
+
+<i>        /* any comment associated with this node. the whole node could be just</i>
+<i>         * a comment!*/</i>
+        <strong>char</strong> * comment;
+
+<i>        /* self explanatory, can be null if appropriate */</i>
+        <strong>struct</strong> keyval_node * children;
+        <strong>struct</strong> keyval_node * head;
+        <strong>struct</strong> keyval_node * next;
+};</tt></pre>
+</div></div>
+<p>Note that <tt>struct keyval_node</tt> is a <em>linked list</em> type of structure. Each node
+can have nodes before and after it, as well as <em>child</em> nodes contained within
+it.</p>
+<p>Consider the <tt>irrationals</tt> section in our <a href="#first-example">first example</a>. This
+section is represented as a <tt>struct keyval_node</tt> with three child nodes, namely
+<tt>pi</tt>, <tt>root two</tt>, and <tt>favourites</tt>. Each of these three child nodes is a
+<tt>struct keyval_node</tt> in its own right. However, <tt>pi</tt> and <tt>root two</tt> have only
+<tt>value</tt> fields and no children.</p>
+<p>To elaborate on the linked-list nature of the node structure, the <tt>head</tt> of the
+<tt>favourites</tt> node is the <tt>pi</tt> node. The <tt>next</tt> field of the <tt>pi</tt> node is
+occupied by <tt>root two</tt>. Note that the <tt>favourites</tt> node knows nothing about its
+connection to the <tt>irrationals</tt> node.</p>
+<h3>Getting Your Hands Dirty</h3>
+<h4>Parse Functions</h4>
+<p>There are two parse functions available. Use these to have the parser do its
+thing.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>struct</strong> keyval_node * keyval_parse_file(<strong>const</strong> <strong>char</strong> * filename);
+<strong>struct</strong> keyval_node * keyval_parse_string(<strong>const</strong> <strong>char</strong> * data);</tt></pre>
+</div></div>
+<p>The first one takes a file name and returns the parsed node structure. The
+second one takes a string of data (perhaps the contents of a file) and returns
+the parsed node structure.</p>
+<p>As an artifact of the parser, the returned node is a sort of <em>supernode</em>. The
+only item of interest in this node is <tt>children</tt>. However, due to the way that
+the node finding function works, this issue is usually transparent.</p>
+<h4>Error Checking</h4>
+<p>Since users might be writing configuration files, there are likely to be syntax
+errors. The following function returns an error string or <tt>NULL</tt> if there were
+no errors.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><i>/* returns the error string or NULL if no error occurred. the internal error</i>
+<i> * condition will be reset once this is called. */</i>
+<i>/* it's up to you to free the return value. */</i>
+<strong>char</strong> * keyval_get_error(<strong>void</strong>);</tt></pre>
+</div></div>
+<p>The error string includes section and line information that will help fix the
+error.</p>
+<p>Here's a broken configuration file.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt>a =
+b =
+z = 3
+ω =
+
+section {
+        james =</tt></pre>
+</div></div>
+<p>The following error string is generated.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt>keyval: error: expected a value after `a =` on line 1</tt></pre>
+</div></div>
+<p>It is almost always a good idea to somehow get this error string to the user.
+A reasonable way of doing this is to print to standard error, or, if your
+program has a gui, popping up an error dialog.</p>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">You should always free the error string returned to you.</td>
+</tr></table>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">After calling a parse function, you should always check for errors.</td>
+</tr></table>
+</div>
+<h4>Avoiding Memory Leaks</h4>
+<p>When you're done with the <em>supernode</em> structure, you should free it using this
+function.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>void</strong> keyval_node_free_all(<strong>struct</strong> keyval_node * head);</tt></pre>
+</div></div>
+<h4>Getting Node Names</h4>
+<p>If you've acquired a node, you can get its name using the following function.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>char</strong> * keyval_node_get_name(<strong>struct</strong> keyval_node * node);</tt></pre>
+</div></div>
+<p>The function will return NULL if a node has no name. Always remember to free
+the result.</p>
+<h4>Navigating a Node</h4>
+<h5>Getting Children</h5>
+<p>The following function will give you the first child node of a node. Since
+children are arranged in a linked list, this allows you to access all children.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>struct</strong> keyval_node * keyval_node_get_children(<strong>struct</strong> keyval_node * node);</tt></pre>
+</div></div>
+<p>Of course, it returns <tt>NULL</tt> on failure.</p>
+<h5>List Traversal</h5>
+<p>If you'd like to get the next element in a linked list of nodes, you can call
+this function. It will return NULL if there are no more elements.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>struct</strong> keyval_node * keyval_node_get_next(<strong>struct</strong> keyval_node * node);</tt></pre>
+</div></div>
+<h5>Finding a Node by Name</h5>
+<p>The principal node navigation functions are:</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>struct</strong> keyval_node * keyval_node_find(<strong>struct</strong> keyval_node * head, <strong>char</strong> * name);
+<strong>struct</strong> keyval_node * keyval_node_find_next(<strong>struct</strong> keyval_node * node,
+                                           <strong>char</strong> * name);</tt></pre>
+</div></div>
+<p>The first function will search the children of <tt>head</tt> for a node
+matching <tt>name</tt>. If no such node is found, it returns NULL.</p>
+<p>You can use the second function to successively find (and do something with)
+all nodes with a specific name. It is used to find the next match.</p>
+<p>For example, suppose your configuration file was as follows.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt>student {
+        name = Andrew
+        gpa = 0.1337
+}
+
+student {
+        name = Dave
+        gpa = 4.0
+}</tt></pre>
+</div></div>
+<p>You could easily print all student names using some code like:</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>struct</strong> keyval_node * students = keyval_parse_file("students.cfg");
+<strong>struct</strong> keyval_node * student;
+<strong>for</strong> (student = keyval_node_find(students, "student"); student; student = keyval_node_find_next(student, "student")) {
+        <strong>char</strong> * name = keyval_node_get_value_string(keyval_node_find(keyval_node_get_children(student), "name"));
+        printf("%s\n", name);
+        free(name);
+}
+keyval_node_free_all(students);</tt></pre>
+</div></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">Error checking is omitted in the above example for clarity. You would run
+      into difficulty if there was a <tt>student</tt> section with no <tt>name</tt> field or
+      if a parse error was encountered.</td>
+</tr></table>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">In the above example, we have used a new function,
+      <tt>keyval_node_get_value_string</tt>.</td>
+</tr></table>
+</div>
+<h3>Getting Values</h3>
+<h4>Value Types</h4>
+<p>You can find out the type of a <tt>node</tt>'s <tt>value</tt> using the following.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>enum</strong> keyval_value_type {
+        KEYVAL_TYPE_NONE,
+        KEYVAL_TYPE_BOOL,
+        KEYVAL_TYPE_STRING,
+        KEYVAL_TYPE_INT,
+        KEYVAL_TYPE_DOUBLE,
+        KEYVAL_TYPE_LIST
+};
+
+<i>/* determines the value type of a node. */</i>
+<strong>enum</strong> keyval_value_type keyval_node_get_value_type(<strong>struct</strong> keyval_node * node);</tt></pre>
+</div></div>
+<p>The possible return values for <tt>keyval_node_get_value_type</tt> are enumerated in
+<tt>enum keyval_value_type</tt>.</p>
+<p>This function determines the best possible type of a value. It will certainly
+return correct results for numbers, lists, and strings. However, there can be
+ambiguity in parsing boolean values. Boolean values will be recognized if:</p>
+<ol>
+<li>
+<p>
+The value is of length 1 and is one of <tt>t</tt>, <tt>T</tt>, <tt>y</tt>, <tt>Y</tt>, <tt>f</tt>, <tt>F</tt>, <tt>n</tt>,
+   <tt>N</tt>, or
+</p>
+</li>
+<li>
+<p>
+The value is some variation of <tt>true</tt> or <tt>false</tt> (case insensitive comparison
+   is performed.)
+</p>
+</li>
+</ol>
+<h4>Value Acquisition</h4>
+<p>Once you know what type of value you want, you can call the corresponding value
+acquisition function.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><strong>unsigned</strong> <strong>char</strong> keyval_node_get_value_bool(<strong>struct</strong> keyval_node * node);
+<strong>char</strong> * keyval_node_get_value_string(<strong>struct</strong> keyval_node * node);
+<strong>int</strong> keyval_node_get_value_int(<strong>struct</strong> keyval_node * node);
+<strong>double</strong> keyval_node_get_value_double(<strong>struct</strong> keyval_node * node);</tt></pre>
+</div></div>
+<p>These are self explanatory.
+NOTE: All string values returned to you by a function will need to be <tt>free()</tt> d
+      manually.</p>
+<h3>Handling Multi-line Values</h3>
+<p>Multi-line values are stored with a <tt>\</tt> at the end of the line, indicating that
+the newline character is to be taken literally. For example, consider the
+following string.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt>there
+are
+many
+lines
+involved</tt></pre>
+</div></div>
+<p>This string should be stored in a configuration file as follows.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt>bunch of lines = there\
+are\
+many\
+lines\
+involved</tt></pre>
+</div></div>
+<p>The file-writing component of the parser will automatically do this for you.</p>
+<h3>Lists</h3>
+<p>A list can be identified using a call to <tt>keyval_node_get_value_type</tt>.
+A list node can have a comment associated with it, and it will certainly
+have children.</p>
+<p>You can access list elements by accessing a list node's children. Each
+element can have a comment associated with it. You can treat each element
+as a normal value-having node; use <tt>keyval_node_get_value_type</tt> and
+<tt>keyval_node_get_value_{int, bool, string, double}</tt> to get the value.</p>
+<h3>Writing Configuration Files</h3>
+<p>Writing configuration files is straightforward. It is up to you to construct a
+well-formed supernode structure (as described above). You can then write the
+result out to a file (or standard output) using the following function.</p>
+<div class="listingblock">
+<div class="content">
+<pre><tt><i>/* writes the stuff out to a file. returns 1 on success, 0 on</i>
+<i> * failure. if filename is NULL, writes to stdout. */</i>
+<strong>unsigned</strong> <strong>char</strong> keyval_write(<strong>struct</strong> keyval_node * head, <strong>const</strong> <strong>char</strong> * filename);</tt></pre>
+</div></div>
+<h3>Playing With Comments</h3>
+<p>The parser preserves comments; comments are accessible using the <tt>comment</tt> field
+of a node.</p>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 30-Nov-2007 15:20:48 EDT
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,369 @@
+Using the keyvalcfg Configuration Parser
+========================================
+Javeed Shaikh <syscrash2k@gmail.com>
+
+The keyvalcfg configuration parser allows one to parse simple human-readable
+plain text configuration files from the C programming language.
+
+Configuration File Syntax
+-------------------------
+[[first-example]]
+A First Example
+~~~~~~~~~~~~~~~
+
+.Sample Configuration File
+................................................................................
+rationals { <1>
+	# i couldn't come up with anything more clever than these... <2>
+	zero = 0
+	unity = 1 <3>
+}
+
+irrationals {
+	pi = 3.14159265358979 # ratio of the circumference to the diameter of a circle
+	root two = 1.4142135623731 # positive solution to x^2 = 2
+
+	favourites {
+		golden ratio = 1.61803399
+	}
+}
+
+# some simple lists
+even numbers = [2, 4, 6, 8, 10, ...] <4>
+odd numbers = [1, 3, 5, 7, <5>
+               9, 11, ...]
+# a sample boolean
+this parser rocks = true # haha, sure
+................................................................................
+
+<1> A section, `rationals`, is opened.
+<2> A comment.
+<3> `unity` is set to 1.
+<4> A list is declared.
+<5> A list can span multiple lines.
+
+Analysis
+~~~~~~~~
+The above example illustrates some of several important features. Here are
+the important ones:
+
+ - Sections are opened and closed using curly braces, `{` and `}`, and can
+	 contain other sections.
+ - Comments are started using the `#` character and continue until the end of
+	 the line.
+ - Key-value pairs are specified using the syntax `key = value`.
+ - Lists begin with `[` and end with `]`. Their values are separated by `,`
+	 characters. They can span multiple lines.
+ - The '\' character is used as an escape character. Any character following
+   a '\' will be treated literally. This can allow values to contain
+	 newline characters and otherwise special characters.
+
+In fact, that was probably everything that someone interested only in reading
+and writing configuration files by hand (a non-developer) would need to know.
+
+Using the Parser
+----------------
+If you're interested in using the parser in one of your C programs, this section
+is for you. Fear not, for the parser is relatively easy to use.
+
+The Principal Node Structure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Every section and key-value pair is termed a 'node'. The structure used to
+represent a node is `struct keyval_node`. The structure definition follows.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node {
+	/* the name of the key or section. can be NULL. */
+	char * name;
+	
+	/* if this is a simple key-value pair, this contains the value. if this is
+	 * a section or just a comment, the value is NULL. */
+	char * value;
+	
+	/* any comment associated with this node. the whole node could be just
+	 * a comment!*/
+	char * comment;
+
+	/* self explanatory, can be null if appropriate */
+	struct keyval_node * children;
+	struct keyval_node * head;
+	struct keyval_node * next;
+};
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note that `struct keyval_node` is a 'linked list' type of structure. Each node
+can have nodes before and after it, as well as 'child' nodes contained within
+it.
+
+Consider the `irrationals` section in our <<first-example,first example>>. This
+section is represented as a `struct keyval_node` with three child nodes, namely
+`pi`, `root two`, and `favourites`. Each of these three child nodes is a
+`struct keyval_node` in its own right. However, `pi` and `root two` have only
+`value` fields and no children.
+
+To elaborate on the linked-list nature of the node structure, the `head` of the
+`favourites` node is the `pi` node. The `next` field of the `pi` node is
+occupied by `root two`. Note that the `favourites` node knows nothing about its
+connection to the `irrationals` node.
+
+Getting Your Hands Dirty
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Parse Functions
+^^^^^^^^^^^^^^^
+There are two parse functions available. Use these to have the parser do its
+thing.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node * keyval_parse_file(const char * filename);
+struct keyval_node * keyval_parse_string(const char * data);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first one takes a file name and returns the parsed node structure. The
+second one takes a string of data (perhaps the contents of a file) and returns
+the parsed node structure.
+
+As an artifact of the parser, the returned node is a sort of 'supernode'. The
+only item of interest in this node is `children`. However, due to the way that
+the node finding function works, this issue is usually transparent.
+
+Error Checking
+^^^^^^^^^^^^^^
+Since users might be writing configuration files, there are likely to be syntax
+errors. The following function returns an error string or `NULL` if there were
+no errors.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/* returns the error string or NULL if no error occurred. the internal error
+ * condition will be reset once this is called. */
+/* it's up to you to free the return value. */
+char * keyval_get_error(void);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The error string includes section and line information that will help fix the
+error.
+
+Here's a broken configuration file.
+--------------------------------------------------------------------------------
+a = 
+b = 
+z = 3
+ω =
+
+section {
+	james =
+--------------------------------------------------------------------------------
+The following error string is generated.
+--------------------------------------------------------------------------------
+keyval: error: expected a value after `a =` on line 1
+--------------------------------------------------------------------------------
+
+It is almost always a good idea to somehow get this error string to the user.
+A reasonable way of doing this is to print to standard error, or, if your
+program has a gui, popping up an error dialog.
+
+NOTE: You should always free the error string returned to you.
+
+NOTE: After calling a parse function, you should always check for errors.
+
+Avoiding Memory Leaks
+^^^^^^^^^^^^^^^^^^^^^
+When you're done with the 'supernode' structure, you should free it using this
+function.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void keyval_node_free_all(struct keyval_node * head);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Getting Node Names
+^^^^^^^^^^^^^^^^^^
+If you've acquired a node, you can get its name using the following function.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+char * keyval_node_get_name(struct keyval_node * node);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The function will return NULL if a node has no name. Always remember to free
+the result.
+
+Navigating a Node
+^^^^^^^^^^^^^^^^^
+Getting Children
+++++++++++++++++
+The following function will give you the first child node of a node. Since
+children are arranged in a linked list, this allows you to access all children.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node * keyval_node_get_children(struct keyval_node * node);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Of course, it returns `NULL` on failure.
+
+List Traversal
+++++++++++++++
+If you'd like to get the next element in a linked list of nodes, you can call
+this function. It will return NULL if there are no more elements.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node * keyval_node_get_next(struct keyval_node * node);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Finding a Node by Name
+++++++++++++++++++++++
+The principal node navigation functions are:
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node * keyval_node_find(struct keyval_node * head, char * name);
+struct keyval_node * keyval_node_find_next(struct keyval_node * node,
+                                           char * name);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The first function will search the children of `head` for a node
+matching `name`. If no such node is found, it returns NULL.
+
+You can use the second function to successively find (and do something with)
+all nodes with a specific name. It is used to find the next match.
+
+For example, suppose your configuration file was as follows.
+--------------------------------------------------------------------------------
+student {
+	name = Andrew
+	gpa = 0.1337
+}
+
+student {
+	name = Dave
+	gpa = 4.0
+}
+--------------------------------------------------------------------------------
+
+You could easily print all student names using some code like:
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct keyval_node * students = keyval_parse_file("students.cfg");
+struct keyval_node * student;
+for (student = keyval_node_find(students, "student"); student; student = keyval_node_find_next(student, "student")) {
+	char * name = keyval_node_get_value_string(keyval_node_find(keyval_node_get_children(student), "name"));
+	printf("%s\n", name);
+	free(name);
+}
+keyval_node_free_all(students);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+NOTE: Error checking is omitted in the above example for clarity. You would run
+      into difficulty if there was a `student` section with no `name` field or
+      if a parse error was encountered.
+
+NOTE: In the above example, we have used a new function,
+      `keyval_node_get_value_string`.
+
+Getting Values
+~~~~~~~~~~~~~~
+Value Types
+^^^^^^^^^^^
+You can find out the type of a `node`'s `value` using the following.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+enum keyval_value_type {
+	KEYVAL_TYPE_NONE,
+	KEYVAL_TYPE_BOOL,
+	KEYVAL_TYPE_STRING,
+	KEYVAL_TYPE_INT,
+	KEYVAL_TYPE_DOUBLE,
+	KEYVAL_TYPE_LIST
+};
+
+/* determines the value type of a node. */
+enum keyval_value_type keyval_node_get_value_type(struct keyval_node * node);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The possible return values for `keyval_node_get_value_type` are enumerated in
+`enum keyval_value_type`.
+
+This function determines the best possible type of a value. It will certainly
+return correct results for numbers, lists, and strings. However, there can be
+ambiguity in parsing boolean values. Boolean values will be recognized if:
+
+1. The value is of length 1 and is one of `t`, `T`, `y`, `Y`, `f`, `F`, `n`,
+   `N`, or
+2. The value is some variation of `true` or `false` (case insensitive comparison
+   is performed.)
+
+Value Acquisition
+^^^^^^^^^^^^^^^^^
+Once you know what type of value you want, you can call the corresponding value
+acquisition function.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+unsigned char keyval_node_get_value_bool(struct keyval_node * node);
+char * keyval_node_get_value_string(struct keyval_node * node);
+int keyval_node_get_value_int(struct keyval_node * node);
+double keyval_node_get_value_double(struct keyval_node * node);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These are self explanatory.
+NOTE: All string values returned to you by a function will need to be `free()` d
+      manually.
+
+Handling Multi-line Values
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Multi-line values are stored with a `\` at the end of the line, indicating that
+the newline character is to be taken literally. For example, consider the
+following string.
+
+--------------------------------------------------------------------------------
+there
+are
+many
+lines
+involved
+--------------------------------------------------------------------------------
+
+This string should be stored in a configuration file as follows.
+
+--------------------------------------------------------------------------------
+bunch of lines = there\
+are\
+many\
+lines\
+involved
+--------------------------------------------------------------------------------
+
+The file-writing component of the parser will automatically do this for you.
+
+Lists
+~~~~~
+A list can be identified using a call to `keyval_node_get_value_type`.
+A list node can have a comment associated with it, and it will certainly
+have children.
+
+You can access list elements by accessing a list node's children. Each
+element can have a comment associated with it. You can treat each element
+as a normal value-having node; use `keyval_node_get_value_type` and
+`keyval_node_get_value_{int, bool, string, double}` to get the value.
+
+Writing Configuration Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Writing configuration files is straightforward. It is up to you to construct a
+well-formed supernode structure (as described above). You can then write the
+result out to a file (or standard output) using the following function.
+
+[c]
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/* writes the stuff out to a file. returns 1 on success, 0 on
+ * failure. if filename is NULL, writes to stdout. */
+unsigned char keyval_write(struct keyval_node * head, const char * filename);
+code~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Playing With Comments
+~~~~~~~~~~~~~~~~~~~~~
+The parser preserves comments; comments are accessible using the `comment` field
+of a node.

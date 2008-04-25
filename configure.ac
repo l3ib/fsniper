@@ -18,7 +18,7 @@ AC_ARG_ENABLE([debug],
 AC_HELP_STRING([--enable-debug],[build a debug version [[default=no]]]),
 	[DEBUG=$enableval], [DEBUG="no"])
 if test "$DEBUG" = "yes"; then
-	FLAGS="-g3 -ggdb -Wall -pedantic"
+	FLAGS="-g3 -ggdb -Wall -Wextra -pedantic"
 else
 	FLAGS=""
 fi

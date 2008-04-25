@@ -6,7 +6,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <wordexp.h>
-#include "keyvalcfg.h"
+#include "keyval_node.h"
 #include "watchnode.h"
 #include "log.h"
 
@@ -18,7 +18,7 @@
 #include <efence.h>
 #endif
 
-extern struct keyval_section *config;
+extern struct keyval_node *config;
 extern struct watchnode *node;
 extern int verbose;
 
@@ -62,9 +62,9 @@ void recurse_add(int fd, char *directory)
 /* parses the config and adds inotify watches to the fd */
 struct watchnode* add_watches(int fd)
 {
-    struct keyval_section* child;
-    struct keyval_section* startchild = NULL;
-    struct keyval_pair* recurse;
+    struct keyval_node* child;
+    struct keyval_node* startchild = NULL;
+    struct keyval_node* recurse;
     char* directory;
     wordexp_t wexp;
     struct watchnode* firstnode;
@@ -100,8 +100,8 @@ struct watchnode* add_watches(int fd)
         node->next->section = NULL;
         node->next->next= NULL;
         node = node->next;
-        if ((recurse = keyval_pair_find(child->keyvals, "recurse")))
-            if (recurse->value != NULL && (strcmp(recurse->value, "true")==0))
+        if ((recurse = keyval_node_find(child, "recurse")))
+					if (recurse->value && keyval_node_get_value_bool(recurse))
                 recurse_add(fd, directory);
         wordfree(&wexp);
         free(directory);
