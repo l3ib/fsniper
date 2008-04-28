@@ -2,27 +2,27 @@
 #define KEYVAL_NODE_HEADER_INCLUDED
 
 struct keyval_node {
-	/* the name of the key or section. can be NULL. */
-	char * name;
+    /* the name of the key or section. can be NULL. */
+    char * name;
 	
-	/* if this is a simple key-value pair, this contains the value. if this is
-	 * a section or just a comment, the value is NULL. */
-	char * value;
+    /* if this is a simple key-value pair, this contains the value. if this is
+     * a section or just a comment, the value is NULL. */
+    char * value;
 	
-	/* any comment associated with this node. the whole node could be just
-	 * a comment!*/
-	char * comment;
+    /* any comment associated with this node. the whole node could be just
+     * a comment!*/
+    char * comment;
 
-	/* self explanatory, can be null if appropriate */
-	struct keyval_node * children;
-	struct keyval_node * head;
-	struct keyval_node * next;
+    /* self explanatory, can be null if appropriate */
+    struct keyval_node * children;
+    struct keyval_node * head;
+    struct keyval_node * next;
 };
 
 /* appends a node to the end of a linked list. returns the new head of the
  * list. */
 struct keyval_node * keyval_node_append(struct keyval_node * head,
-		struct keyval_node * node);
+                                        struct keyval_node * node);
 
 /* traverses the linked list pointed to by 'head' and frees it and all
  * children. */
@@ -52,12 +52,12 @@ struct keyval_node * keyval_node_find_next(struct keyval_node * node,
                                            char * name);
 
 enum keyval_value_type {
-	KEYVAL_TYPE_NONE,
-	KEYVAL_TYPE_BOOL,
-	KEYVAL_TYPE_STRING,
-	KEYVAL_TYPE_INT,
-	KEYVAL_TYPE_DOUBLE,
-	KEYVAL_TYPE_LIST
+    KEYVAL_TYPE_NONE,
+    KEYVAL_TYPE_BOOL,
+    KEYVAL_TYPE_STRING,
+    KEYVAL_TYPE_INT,
+    KEYVAL_TYPE_DOUBLE,
+    KEYVAL_TYPE_LIST
 };
 
 /* determines the value type of a node. */

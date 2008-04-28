@@ -101,7 +101,7 @@ struct watchnode* add_watches(int fd)
         node->next->next= NULL;
         node = node->next;
         if ((recurse = keyval_node_find(child, "recurse")))
-					if (recurse->value && keyval_node_get_value_bool(recurse))
+            if (recurse->value && keyval_node_get_value_bool(recurse))
                 recurse_add(fd, directory);
         wordfree(&wexp);
         free(directory);

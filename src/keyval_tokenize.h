@@ -4,21 +4,21 @@
 #include <stdio.h>
 
 enum keyval_token_flags {
-	KEYVAL_TOKEN_NORMAL,
-	KEYVAL_TOKEN_SEPARATOR,
-	KEYVAL_TOKEN_WHITESPACE
+    KEYVAL_TOKEN_NORMAL,
+    KEYVAL_TOKEN_SEPARATOR,
+    KEYVAL_TOKEN_WHITESPACE
 };
 
 struct keyval_token {
-	const char * data;
-	size_t length;
-	size_t line;
+    const char * data;
+    size_t length;
+    size_t line;
 
-	enum keyval_token_flags flags;
+    enum keyval_token_flags flags;
 
-	struct keyval_token * head;
-	struct keyval_token * prev;
-	struct keyval_token * next;
+    struct keyval_token * head;
+    struct keyval_token * prev;
+    struct keyval_token * next;
 };
 
 /* separates s into pieces, with each character of separators getting its own
