@@ -1,0 +1,19 @@
+Further documentation is available in the doc directory included with
+this tarball.
+
+Dependencies:
+libmagic (included with 'file')
+libpcre (may be included in your distribution's pcre package)
+
+To install fsniper:
+./configure
+make
+sudo make install
+
+An example config named example.conf is included in this tarball. You
+will need to place a config, named "config", in ~/.config/fsniper/
+before using it.
+
+Bugs can be reported at http://bugs.l3ib.org
+The l3ib developers can be reached in the #l3ib channel on irc.freenode.net
+Feel free to stop by if you have questions, comments, a bug report, or suggestions!
