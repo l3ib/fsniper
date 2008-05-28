@@ -70,7 +70,9 @@ void recurse_add(int fd, char *directory, struct keyval_node* child)
             node->path = strdup(path);
             node->section = child;
             node->next = malloc(sizeof(struct watchnode));
-            node->next->next = NULL;
+            node->next->path = NULL;
+            node->next->section = NULL;
+            node->next->next= NULL;
             node = node->next;
             recurse_add(fd, path, child);
         }
