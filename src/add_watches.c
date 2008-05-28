@@ -41,7 +41,7 @@ extern struct watchnode *node;
 extern int verbose;
 
 /* recursively add watches */
-void recurse_add(int fd, char *directory)
+void recurse_add(int fd, char *directory, struct keyval_node* child)
 {
     struct stat dir_stat;
     struct dirent *entry;
@@ -68,10 +68,11 @@ void recurse_add(int fd, char *directory)
             if (verbose) log_write("Watching directory: %s\n", path);
             node->wd = inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO);
             node->path = strdup(path);
+            node->section = child;
             node->next = malloc(sizeof(struct watchnode));
             node->next->next = NULL;
             node = node->next;
-            recurse_add(fd, path);
+            recurse_add(fd, path, child);
         }
         free(path);
     }
@@ -120,7 +121,7 @@ struct watchnode* add_watches(int fd)
         node = node->next;
         if ((recurse = keyval_node_find(child, "recurse")))
             if (recurse->value && keyval_node_get_value_bool(recurse))
-                recurse_add(fd, directory);
+                recurse_add(fd, directory, child);
         wordfree(&wexp);
         free(directory);
     }

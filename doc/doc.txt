@@ -70,7 +70,10 @@ watch {
 
 To start defining directories to watch, you must have a watch block.  Each
 block underneath a watch block is a directory that fsniper monitors for files
-that are closed (and that had previously been opened for writing).  
+that are closed (and that had previously been opened for
+writing). Subdirectories are not watched by default. If you want to
+watch them, you must specify "recurse = true" as the first line in the
+directory block.
 
 In this configuration, we are watching only one dir, ~/tmp/s.  Underneath that
 directory block, we are watching for 4 different patterns of files.  The first
@@ -249,18 +252,19 @@ perform those actions.
 ----------------------------------
 watch {
     ~/tmp/drop {                                 (1)
-        image/* {                                (2)
-            handler = bg.pl                      (3)
-            handler = mv %% ~/media              (4)
+        recurse = true                           (2)         
+        image/* {                                (3)
+            handler = bg.pl                      (4)
+            handler = mv %% ~/media              (5)
         }
-        /\.(bz2|gz)$/ {                          (5)
-            handler = theme.pl                   (6)
+        /\.(bz2|gz)$/ {                          (6)
+            handler = theme.pl                   (7)
         }
     }
 
     ~/torrants {
         application/x-bittorrent {
-                handler = torrent.pl             (7)
+                handler = torrent.pl             (8)
         }
     }
 }
@@ -269,15 +273,18 @@ watch {
 So in our watch block, we're watching two directories, \~/tmp/drop and
 \~/torrants, as denoted at location 1.  
 
+Line 2 indicates that we want to watch subdirectories of ~/tmp/drop
+for changes.
+
 First, we want to look at any image that gets placed into this directory.
 We match against the image/\* mime-type, which means anything which falls 
-into the image mime-type category.  This is denoted at location 2.
+into the image mime-type category.  This is denoted at location 3.
 
 Order of your rules is important.  They are executed in order from first to
 last, so put the most scrutinizing handlers first.  The first thing we are
-going to do, denoted by location 3, is test an image file to see if it is a 
+going to do, denoted by location 4, is test an image file to see if it is a 
 background image, and move it to my backgrounds folder.  This is at location
-3.
+4.
 
 [caption="Listing: "]
 .bg.pl
@@ -313,11 +320,11 @@ handled the file, and don't run any more handlers.
 
 If it didn't end up handling the file, we return 1 from the handler.  This 
 tells fsniper to move on to the next handler in the list, which is at location
-4.  We've inlined a simple move command here which moves any image file to the
+5.  We've inlined a simple move command here which moves any image file to the
 \~/media directory.
 
-Location 5 handles either files ending in bz2 or gz, which are typically tar
-archives.  Location 6 details a script which will analyze the archive file to
+Location 6 handles either files ending in bz2 or gz, which are typically tar
+archives.  Location 7 details a script which will analyze the archive file to
 see if it contains an openbox or gtk theme (meant to be put in $HOME/.themes),
 and automatically extracts that archive there.
 
@@ -361,7 +368,7 @@ If the script reaches the end and exits with 1, the file is simply left in
 that directory.  Fsniper will not touch it again unless it is closed for writing,
 which can be done with the "touch" command at the simplest.
 
-Listing 7 automatically transfers torrent files to my torrent server, where
+Listing 8 automatically transfers torrent files to my torrent server, where
 I rely on rtorrent to pick up its existance and start running the file.  The 
 script is essentially a simple scp operation followed by a rm on the torrent
 file.
