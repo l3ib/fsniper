@@ -95,6 +95,7 @@ also use *, which would be a file glob.
 Configuration
 -------------
 
+fsniper's configuration file is located at ~/.config/fsniper/config
 This section details all the available configuration options.
 
 Matching Patterns
