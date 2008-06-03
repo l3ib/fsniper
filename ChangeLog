@@ -2,6 +2,9 @@ Mon Jun  2 22:12:10 EDT 2008	Dave Foster <daf@minuslab.net>
 	* Fixed bug with --log-to-stdout and handlers that wrote to 
 	  stdout.
 
+Tue May 25 23:08:00 EDT 2008   	Andrew Yates <andrew@andrewyates.net>
+	* Fixed bug where recurse=true resulted in a segfault.
+	
 Mon Aug 20 14:48:04 EDT 2007	Dave Foster <daf@minuslab.net>
 	* Added a delay return code for handlers.  Returning 2 from
 	  a handler will automatically delay a handler for 5 minutes,
