@@ -37,7 +37,7 @@
 #endif
 
 extern struct keyval_node *config;
-extern struct watchnode *node;
+extern struct watchnode *g_watchnode;
 extern int verbose;
 
 /* recursively add watches */
@@ -46,6 +46,7 @@ void recurse_add(int fd, char *directory, struct keyval_node* child)
     struct stat dir_stat;
     struct dirent *entry;
     char* path;
+    struct watchnode* node = g_watchnode;
     DIR* dir = opendir(directory);
 
     if (dir == NULL)
@@ -90,6 +91,7 @@ struct watchnode* add_watches(int fd)
     char* directory;
     wordexp_t wexp;
     struct watchnode* firstnode;
+    struct watchnode* node = g_watchnode;
     node = malloc(sizeof(struct watchnode));
     node->next = NULL;
     firstnode = node;

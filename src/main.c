@@ -58,7 +58,7 @@ extern FILE* _logfd;
 struct keyval_node *config = NULL; 
 
 /* global watchnode */
-struct watchnode *node = NULL;
+struct watchnode *g_watchnode = NULL;
 
 /* used for verbose printfs throughout fsniper */
 int verbose = 0;  
@@ -91,7 +91,7 @@ void free_watchnodes()
 {
     struct watchnode *cur, *prev;
 
-    cur = node;
+    cur = g_watchnode;
 
     while (cur) {
         if (cur->path)
@@ -206,7 +206,7 @@ void handle_hup_signal()
     close(ifd);
     free_watchnodes();
     ifd = inotify_init();
-    node = add_watches(ifd);
+    g_watchnode = add_watches(ifd);
 }
 
 
@@ -410,7 +410,7 @@ int main(int argc, char** argv)
     }
 
     /* add nodes to the inotify descriptor */
-    node = add_watches(ifd);
+    g_watchnode = add_watches(ifd);
 
     /* wait for events and then handle them */
     while (1)
