@@ -82,7 +82,7 @@ int log_write(char *str, ...)
 
 int log_close()
 {
-    if (_logfd)
+    if (_logfd && _logfd != stdout)
         fclose(_logfd);
 
     return 1;
