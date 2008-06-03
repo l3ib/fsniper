@@ -126,12 +126,14 @@ void free_all_globals()
     free_watchnodes();
 
     /* free / close any remaining pipes in the list */    
-    tmp_pipe = pipe_list_head->next;
-    while(tmp_pipe)
-	tmp_pipe = pipe_list_remove(pipe_list_head, tmp_pipe);
-
-    free(pipe_list_head);
-
+    if (pipe_list_head)
+    {
+        tmp_pipe = pipe_list_head->next;
+        while(tmp_pipe)
+    	tmp_pipe = pipe_list_remove(pipe_list_head, tmp_pipe);
+        free(pipe_list_head);
+    }
+   
     free(configfile);
 }
 

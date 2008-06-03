@@ -83,6 +83,7 @@ void recurse_add(int fd, char *directory, struct keyval_node* child)
 /* parses the config and adds inotify watches to the fd */
 struct watchnode* add_watches(int fd)
 {
+    struct stat dir_stat;
     struct keyval_node* child;
     struct keyval_node* startchild = NULL;
     struct keyval_node* recurse;
@@ -112,6 +113,16 @@ struct watchnode* add_watches(int fd)
     {
         wordexp(child->name, &wexp, 0);
         directory = strdup(wexp.we_wordv[0]);
+        if (stat(directory, &dir_stat) == -1)
+        {
+            log_write("Error: directory \"%s\" does not exist.\n", directory);
+            continue;        
+        }
+        if (!S_ISDIR(dir_stat.st_mode))
+        {
+            log_write("Error: \"%s\" is not a directory.\n", directory);
+            continue;
+        }
         if (verbose) log_write("Watching directory: %s\n", directory);
         node->wd = inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO);
         node->path = strdup(wexp.we_wordv[0]);
