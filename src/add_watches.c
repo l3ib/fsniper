@@ -68,7 +68,7 @@ void recurse_add(struct watchnode* node, int fd, char *directory, struct keyval_
         {
             if (verbose) log_write("Watching directory: %s\n", path);
             
-            node = watchnode_create(node, inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO),
+            node = watchnode_create(node, inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE | IN_DELETE),
                                strdup(path), child);
 
             recurse_add(node, fd, path, child);
@@ -127,7 +127,7 @@ struct watchnode* add_watches(int fd)
         if (verbose) log_write("Watching directory: %s\n", directory);
 
         /* create the node and advance the pointer */
-        node = watchnode_create(node, inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO),
+        node = watchnode_create(node, inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE | IN_DELETE),
                            strdup(wexp.we_wordv[0]), child);
 
         if ((recurse = keyval_node_find(child, "recurse")))

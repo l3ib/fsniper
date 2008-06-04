@@ -451,7 +451,7 @@ int main(int argc, char** argv)
 	    while (i < len)
 	    {
 		event = (struct inotify_event *) &buf[i];
-		if (event->len)
+		if (event->len && (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO))
 		{
 		    /* if sync mode, just call handle_exec */
 		    if (syncmode == 1)
@@ -483,8 +483,16 @@ int main(int argc, char** argv)
 			}
 		    }
 		}
-		i += EVENT_SIZE + event->len;
-	    }
+        else if (event->len && (event->mask & IN_CREATE && event->mask & IN_ISDIR))
+        {
+            printf("ADD TO DIRECTORY PICE\n");
+        }
+		else if (event->len && (event->mask & IN_DELETE && event->mask & IN_ISDIR))
+        {
+            printf("REMOVE FROM DIRECTORY PICE\n");
+        }
+        i += EVENT_SIZE + event->len;
+        }
 	    i = 0;
 	}
 		
