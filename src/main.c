@@ -90,15 +90,17 @@ struct pipe_list * pipe_list_remove(struct pipe_list * head,
 void free_watchnodes()
 {
     struct watchnode *cur, *prev;
+    if (!g_watchnode)
+        return;
 
-    cur = g_watchnode;
+    cur = g_watchnode->next;
 
     while (cur) {
         if (cur->path)
-	    free(cur->path);
-	prev = cur;
-	cur = cur->next;
-	free(prev);
+	        free(cur->path);
+	    prev = cur;
+	    cur = cur->next;
+	    free(prev);
     }
 }
 

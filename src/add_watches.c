@@ -40,13 +40,13 @@ extern struct keyval_node *config;
 extern struct watchnode *g_watchnode;
 extern int verbose;
 
+
 /* recursively add watches */
-void recurse_add(int fd, char *directory, struct keyval_node* child)
+void recurse_add(struct watchnode* node, int fd, char *directory, struct keyval_node* child)
 {
     struct stat dir_stat;
     struct dirent *entry;
     char* path;
-    struct watchnode* node = g_watchnode;
     DIR* dir = opendir(directory);
 
     if (dir == NULL)
@@ -67,15 +67,11 @@ void recurse_add(int fd, char *directory, struct keyval_node* child)
         if (S_ISDIR(dir_stat.st_mode))
         {
             if (verbose) log_write("Watching directory: %s\n", path);
-            node->wd = inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO);
-            node->path = strdup(path);
-            node->section = child;
-            node->next = malloc(sizeof(struct watchnode));
-            node->next->path = NULL;
-            node->next->section = NULL;
-            node->next->next= NULL;
-            node = node->next;
-            recurse_add(fd, path, child);
+            
+            node = watchnode_create(node, inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO),
+                               strdup(path), child);
+
+            recurse_add(node, fd, path, child);
         }
         free(path);
     }
@@ -91,10 +87,13 @@ struct watchnode* add_watches(int fd)
     char* directory;
     wordexp_t wexp;
     struct watchnode* firstnode;
-    struct watchnode* node = g_watchnode;
-    node = malloc(sizeof(struct watchnode));
+    struct watchnode* node;
+   
+    firstnode = malloc(sizeof(struct watchnode));
+    node = firstnode;
+    node->path = NULL;
+    node->section = NULL;
     node->next = NULL;
-    firstnode = node;
 
     /* find watch child from main cfg item */
     for (child = config->children; child; child = child->next)
@@ -126,19 +125,17 @@ struct watchnode* add_watches(int fd)
             continue;
         }
         if (verbose) log_write("Watching directory: %s\n", directory);
-        node->wd = inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO);
-        node->path = strdup(wexp.we_wordv[0]);
-        node->section = child;
-        node->next = malloc(sizeof(struct watchnode));
-        node->next->path = NULL;
-        node->next->section = NULL;
-        node->next->next= NULL;
-        node = node->next;
+
+        /* create the node and advance the pointer */
+        node = watchnode_create(node, inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO),
+                           strdup(wexp.we_wordv[0]), child);
+
         if ((recurse = keyval_node_find(child, "recurse")))
             if (recurse->value && keyval_node_get_value_bool(recurse))
-                recurse_add(fd, directory, child);
+                recurse_add(node, fd, directory, child);
         wordfree(&wexp);
         free(directory);
     }
     return firstnode;
 }
+
