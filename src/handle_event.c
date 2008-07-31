@@ -88,7 +88,7 @@ void handle_event(struct inotify_event* event, int writefd)
     int delay_time;
     struct watchnode* node;
 
-/* find the node that corresponds to the event's descriptor */
+    /* find the node that corresponds to the event's descriptor */
     for (node=g_watchnode->next; node; node = node->next)
     {
         if (node->wd == event->wd)
