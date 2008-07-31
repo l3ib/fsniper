@@ -10,5 +10,7 @@ struct watchnode
 };
 
 struct watchnode* watchnode_create(struct watchnode* node, int wd, char* path, struct keyval_node* section);
+
+void watchnode_free(struct watchnode* prevnode);
  
 #endif

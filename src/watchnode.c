@@ -18,9 +18,13 @@
 
 #include <stdlib.h>
 #include "watchnode.h"
+#include <stdio.h>
 
 /**
  * Creates a new watchnode at node->next and populates it with passed parameters.
+ *
+ * It is expected that path be a duplicated string. watchnode_free will attempt to free
+ * it.
  *
  * Returns this newly created watchnode.
  */
@@ -33,5 +37,30 @@ struct watchnode* watchnode_create(struct watchnode* node, int wd, char* path, s
      node->next->next= NULL;
 
      return node->next;
+}
+
+/**
+ * Frees the passed node's next node.  Sets the passed node's next to point to next->next.
+ *
+ * Always remember to pass in the node BEFORE the node you want to remove.
+ */
+void watchnode_free(struct watchnode* prevnode)
+{
+    struct watchnode *delnode;
+
+    if (!prevnode->next)
+    {
+        fprintf(stderr, "watchnode_free(): received an invalid parameter.\n");
+        return;
+    }
+
+    delnode = prevnode->next;
+    
+    /* remove from linked list */    
+    prevnode->next = delnode->next;
+
+    /* free delnode */
+    free(delnode->path);
+    free(delnode);
 }
 

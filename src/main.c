@@ -245,6 +245,7 @@ int main(int argc, char** argv)
     char *error_str;
     char *version_str = PACKAGE_STRING;
     char *pbuf;
+    char *filename;
     FILE *pidfile;
     FILE *statusfile;
     fd_set set;
@@ -252,6 +253,7 @@ int main(int argc, char** argv)
     struct argument *argument = argument_new();
     struct pipe_list *pipe_list_cur;
     struct stat file_stat;
+    struct watchnode *node;
 
     /* alloc pipe list */
     pipe_list_head = malloc(sizeof(struct pipe_list));
@@ -485,11 +487,33 @@ int main(int argc, char** argv)
 		}
         else if (event->len && (event->mask & IN_CREATE && event->mask & IN_ISDIR))
         {
-            printf("ADD TO DIRECTORY PICE\n");
+            for (node = g_watchnode->next; node; node = node->next)
+                if (node->wd == event->wd)
+                    break;
+
+            if (node)
+            {
+                /* combine the name inotify gives with the full path to the file */
+                filename = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + 1);
+                sprintf(filename, "%s/%s", node->path, event->name);
+                watch_dir(node, ifd, strdup(filename), node->section);
+                free(filename);
+            }
         }
 		else if (event->len && (event->mask & IN_DELETE && event->mask & IN_ISDIR))
         {
-            printf("REMOVE FROM DIRECTORY PICE\n");
+            for (node = g_watchnode->next; node; node = node->next)
+                if (node->wd == event->wd)
+                    break;
+
+            if (node)
+            {
+                /* combine the name inotify gives with the full path to the file */
+                filename = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + 1);
+                sprintf(filename, "%s/%s", node->path, event->name);
+                unwatch_dir(filename, ifd);
+                free(filename);
+            }
         }
         i += EVENT_SIZE + event->len;
         }

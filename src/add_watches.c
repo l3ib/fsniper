@@ -40,6 +40,55 @@ extern struct keyval_node *config;
 extern struct watchnode *g_watchnode;
 extern int verbose;
 
+/**
+ * Adds an inotify watch to the list of watches.
+ */
+struct watchnode* watch_dir(struct watchnode* node, int ifd, char *dir, struct keyval_node* kv_section)
+{
+    struct watchnode *retval;
+
+    if (verbose) log_write("Watching directory: %s\n", dir);
+
+    /* warp to end of watchnode list */
+    while (node->next)
+        node = node->next;
+
+    retval = watchnode_create(node,
+                              inotify_add_watch(ifd, dir, IN_CLOSE_WRITE | IN_MOVED_TO |
+                                                          IN_CREATE | IN_DELETE),
+                              strdup(dir),
+                              kv_section);
+
+    return retval;
+}
+
+/**
+ * Removes an inotify watch and removes its watchnode from the list.
+ *
+ * You only need to pass a directory name into this function, it will find the
+ * watchnode for you and remove it.
+ *
+ * It returns 1 on success, 0 on failure.
+ */
+int unwatch_dir(char *dir, int ifd)
+{
+    struct watchnode *node;
+
+    for (node = g_watchnode; node->next; node = node->next)
+        if (strcmp(node->next->path, dir) == 0)
+            break;
+
+    if (node->next)
+    {
+        if (verbose) log_write("Unwatching directory: %s\n", dir);
+        inotify_rm_watch(ifd, node->next->wd);
+        watchnode_free(node); /* pass in the item before the one we want to remove */
+
+        return 1;
+    }
+
+    return 0;
+}
 
 /* recursively add watches */
 void recurse_add(struct watchnode* node, int fd, char *directory, struct keyval_node* child)
@@ -66,11 +115,7 @@ void recurse_add(struct watchnode* node, int fd, char *directory, struct keyval_
         }
         if (S_ISDIR(dir_stat.st_mode))
         {
-            if (verbose) log_write("Watching directory: %s\n", path);
-            
-            node = watchnode_create(node, inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE | IN_DELETE),
-                               strdup(path), child);
-
+            node = watch_dir(node, fd, path, child);
             recurse_add(node, fd, path, child);
         }
         free(path);
@@ -124,15 +169,14 @@ struct watchnode* add_watches(int fd)
             log_write("Error: \"%s\" is not a directory.\n", directory);
             continue;
         }
-        if (verbose) log_write("Watching directory: %s\n", directory);
 
         /* create the node and advance the pointer */
-        node = watchnode_create(node, inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE | IN_DELETE),
-                           strdup(wexp.we_wordv[0]), child);
+        node = watch_dir(node, fd, wexp.we_wordv[0], child);
 
         if ((recurse = keyval_node_find(child, "recurse")))
             if (recurse->value && keyval_node_get_value_bool(recurse))
                 recurse_add(node, fd, directory, child);
+        
         wordfree(&wexp);
         free(directory);
     }
