@@ -157,6 +157,7 @@ struct watchnode* add_watches(int fd)
     /* get children of this */
     for (child = startchild->children; child; child = child->next)
     {
+        if (!child->name) continue; /* skip comment nodes */
         wordexp(child->name, &wexp, 0);
         directory = strdup(wexp.we_wordv[0]);
         if (stat(directory, &dir_stat) == -1)
