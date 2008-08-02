@@ -235,7 +235,7 @@ void handle_event(struct inotify_event* event, int writefd)
     delay_repeats = get_delay_repeats(child);
     delay_time = get_delay_time(child);
 	
-    while (handler && (attempts < delay_repeats || delay_repeats == 0))
+    while (handler && handler->name && (attempts < delay_repeats || delay_repeats == 0))
     {
         /* if not a handler, skip it */
         if (strcmp(handler->name, "handler") != 0)
