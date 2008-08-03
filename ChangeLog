@@ -1,3 +1,7 @@
+Sat Aug 2 17:03:28 EDT 2008     Javeed Shaikh <syscrash2k@gmail.com>
+	* Fixed regression in config parser that caused fsniper to 
+       	  crash on comments.
+    
 Wed Jul 30 22:08:24 EDT 2008	Dave Foster <daf@minuslab.net>
 	* Added ability to watch directories created under directories
 	  you are already watching when recurse option is set.  Will
