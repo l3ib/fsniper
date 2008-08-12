@@ -48,7 +48,7 @@ int log_open()
         sprintf(logfile, "%s/log", configdir);
         free(configdir);	
 
-        _logfd = fopen(logfile, "w");
+        _logfd = fopen(logfile, "a");
 
         free(logfile);
     }
