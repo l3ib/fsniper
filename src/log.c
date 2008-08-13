@@ -48,7 +48,7 @@ int log_open()
         sprintf(logfile, "%s/log", configdir);
         free(configdir);	
 
-        _logfd = fopen(logfile, "w");
+        _logfd = fopen(logfile, "a");
 
         free(logfile);
     }
@@ -56,7 +56,21 @@ int log_open()
         _logfd = stdout;
 
     if (_logfd)
-        log_write("Log opened\n");
+    {
+    	int pid = getpid();
+    	
+    	int i = pid;
+    	int pidlen = 1;
+    	while (i/=10) pidlen++;
+    	
+    	char *version = PACKAGE_VERSION;
+    	char *openstr = malloc(strlen("Log opened: fsniper version ") + strlen(version) + \
+    		strlen(" (pid: ") + pidlen + strlen(")\n") + 1);
+    		
+    	sprintf(openstr, "Log opened: fsniper version %s (pid: %d)\n", version, pid);
+        log_write(openstr);
+        free(openstr);
+    }
 
     return (_logfd != NULL);	
 }
@@ -82,7 +96,7 @@ int log_write(char *str, ...)
 
 int log_close()
 {
-    if (_logfd)
+    if (_logfd && _logfd != stdout)
         fclose(_logfd);
 
     return 1;

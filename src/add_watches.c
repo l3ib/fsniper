@@ -37,11 +37,61 @@
 #endif
 
 extern struct keyval_node *config;
-extern struct watchnode *node;
+extern struct watchnode *g_watchnode;
 extern int verbose;
 
+/**
+ * Adds an inotify watch to the list of watches.
+ */
+struct watchnode* watch_dir(struct watchnode* node, int ifd, char *dir, struct keyval_node* kv_section)
+{
+    struct watchnode *retval;
+
+    if (verbose) log_write("Watching directory: %s\n", dir);
+
+    /* warp to end of watchnode list */
+    while (node->next)
+        node = node->next;
+
+    retval = watchnode_create(node,
+                              inotify_add_watch(ifd, dir, IN_CLOSE_WRITE | IN_MOVED_TO |
+                                                          IN_CREATE | IN_DELETE),
+                              strdup(dir),
+                              kv_section);
+
+    return retval;
+}
+
+/**
+ * Removes an inotify watch and removes its watchnode from the list.
+ *
+ * You only need to pass a directory name into this function, it will find the
+ * watchnode for you and remove it.
+ *
+ * It returns 1 on success, 0 on failure.
+ */
+int unwatch_dir(char *dir, int ifd)
+{
+    struct watchnode *node;
+
+    for (node = g_watchnode; node->next; node = node->next)
+        if (strcmp(node->next->path, dir) == 0)
+            break;
+
+    if (node->next)
+    {
+        if (verbose) log_write("Unwatching directory: %s\n", dir);
+        inotify_rm_watch(ifd, node->next->wd);
+        watchnode_free(node); /* pass in the item before the one we want to remove */
+
+        return 1;
+    }
+
+    return 0;
+}
+
 /* recursively add watches */
-void recurse_add(int fd, char *directory)
+void recurse_add(struct watchnode* node, int fd, char *directory, struct keyval_node* child)
 {
     struct stat dir_stat;
     struct dirent *entry;
@@ -65,13 +115,8 @@ void recurse_add(int fd, char *directory)
         }
         if (S_ISDIR(dir_stat.st_mode))
         {
-            if (verbose) log_write("Watching directory: %s\n", path);
-            node->wd = inotify_add_watch(fd, path, IN_CLOSE_WRITE | IN_MOVED_TO);
-            node->path = strdup(path);
-            node->next = malloc(sizeof(struct watchnode));
-            node->next->next = NULL;
-            node = node->next;
-            recurse_add(fd, path);
+            node = watch_dir(node, fd, path, child);
+            recurse_add(node, fd, path, child);
         }
         free(path);
     }
@@ -80,15 +125,20 @@ void recurse_add(int fd, char *directory)
 /* parses the config and adds inotify watches to the fd */
 struct watchnode* add_watches(int fd)
 {
+    struct stat dir_stat;
     struct keyval_node* child;
     struct keyval_node* startchild = NULL;
     struct keyval_node* recurse;
     char* directory;
     wordexp_t wexp;
     struct watchnode* firstnode;
-    node = malloc(sizeof(struct watchnode));
+    struct watchnode* node;
+   
+    firstnode = malloc(sizeof(struct watchnode));
+    node = firstnode;
+    node->path = NULL;
+    node->section = NULL;
     node->next = NULL;
-    firstnode = node;
 
     /* find watch child from main cfg item */
     for (child = config->children; child; child = child->next)
@@ -107,22 +157,30 @@ struct watchnode* add_watches(int fd)
     /* get children of this */
     for (child = startchild->children; child; child = child->next)
     {
+        if (!child->name) continue; /* skip comment nodes */
         wordexp(child->name, &wexp, 0);
         directory = strdup(wexp.we_wordv[0]);
-        if (verbose) log_write("Watching directory: %s\n", directory);
-        node->wd = inotify_add_watch(fd, directory, IN_CLOSE_WRITE | IN_MOVED_TO);
-        node->path = strdup(wexp.we_wordv[0]);
-        node->section = child;
-        node->next = malloc(sizeof(struct watchnode));
-        node->next->path = NULL;
-        node->next->section = NULL;
-        node->next->next= NULL;
-        node = node->next;
+        if (stat(directory, &dir_stat) == -1)
+        {
+            log_write("Error: directory \"%s\" does not exist.\n", directory);
+            continue;        
+        }
+        if (!S_ISDIR(dir_stat.st_mode))
+        {
+            log_write("Error: \"%s\" is not a directory.\n", directory);
+            continue;
+        }
+
+        /* create the node and advance the pointer */
+        node = watch_dir(node, fd, wexp.we_wordv[0], child);
+
         if ((recurse = keyval_node_find(child, "recurse")))
             if (recurse->value && keyval_node_get_value_bool(recurse))
-                recurse_add(fd, directory);
+                recurse_add(node, fd, directory, child);
+        
         wordfree(&wexp);
         free(directory);
     }
     return firstnode;
 }
+

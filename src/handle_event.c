@@ -38,7 +38,7 @@
 #endif
 
 extern struct keyval_node *config;
-extern struct watchnode *node;
+extern struct watchnode *g_watchnode;
 extern int verbose;
 extern int syncmode;
 extern int logtostdout;
@@ -86,9 +86,10 @@ void handle_event(struct inotify_event* event, int writefd)
     int pcre_match;
     int delay_repeats;
     int delay_time;
+    struct watchnode* node;
 
-/* find the node that corresponds to the event's descriptor */
-    for (; node; node = node->next)
+    /* find the node that corresponds to the event's descriptor */
+    for (node=g_watchnode->next; node; node = node->next)
     {
         if (node->wd == event->wd)
             break;
@@ -234,7 +235,7 @@ void handle_event(struct inotify_event* event, int writefd)
     delay_repeats = get_delay_repeats(child);
     delay_time = get_delay_time(child);
 	
-    while (handler && (attempts < delay_repeats || delay_repeats == 0))
+    while (handler && handler->name && (attempts < delay_repeats || delay_repeats == 0))
     {
         /* if not a handler, skip it */
         if (strcmp(handler->name, "handler") != 0)

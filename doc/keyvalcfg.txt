@@ -367,3 +367,5 @@ Playing With Comments
 ~~~~~~~~~~~~~~~~~~~~~
 The parser preserves comments; comments are accessible using the `comment` field
 of a node.
+
+WARNING: For comment-only nodes, the `value` field is zero. Never assume that a node's `value` field will be non-zero!

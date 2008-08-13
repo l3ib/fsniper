@@ -58,7 +58,7 @@ extern FILE* _logfd;
 struct keyval_node *config = NULL; 
 
 /* global watchnode */
-struct watchnode *node = NULL;
+struct watchnode *g_watchnode = NULL;
 
 /* used for verbose printfs throughout fsniper */
 int verbose = 0;  
@@ -90,15 +90,17 @@ struct pipe_list * pipe_list_remove(struct pipe_list * head,
 void free_watchnodes()
 {
     struct watchnode *cur, *prev;
+    if (!g_watchnode)
+        return;
 
-    cur = node;
+    cur = g_watchnode->next;
 
     while (cur) {
         if (cur->path)
-	    free(cur->path);
-	prev = cur;
-	cur = cur->next;
-	free(prev);
+	        free(cur->path);
+	    prev = cur;
+	    cur = cur->next;
+	    free(prev);
     }
 }
 
@@ -126,12 +128,14 @@ void free_all_globals()
     free_watchnodes();
 
     /* free / close any remaining pipes in the list */    
-    tmp_pipe = pipe_list_head->next;
-    while(tmp_pipe)
-	tmp_pipe = pipe_list_remove(pipe_list_head, tmp_pipe);
-
-    free(pipe_list_head);
-
+    if (pipe_list_head)
+    {
+        tmp_pipe = pipe_list_head->next;
+        while(tmp_pipe)
+    	tmp_pipe = pipe_list_remove(pipe_list_head, tmp_pipe);
+        free(pipe_list_head);
+    }
+   
     free(configfile);
 }
 
@@ -204,7 +208,7 @@ void handle_hup_signal()
     close(ifd);
     free_watchnodes();
     ifd = inotify_init();
-    node = add_watches(ifd);
+    g_watchnode = add_watches(ifd);
 }
 
 
@@ -241,6 +245,7 @@ int main(int argc, char** argv)
     char *error_str;
     char *version_str = PACKAGE_STRING;
     char *pbuf;
+    char *filename;
     FILE *pidfile;
     FILE *statusfile;
     fd_set set;
@@ -248,6 +253,7 @@ int main(int argc, char** argv)
     struct argument *argument = argument_new();
     struct pipe_list *pipe_list_cur;
     struct stat file_stat;
+    struct watchnode *node;
 
     /* alloc pipe list */
     pipe_list_head = malloc(sizeof(struct pipe_list));
@@ -408,7 +414,7 @@ int main(int argc, char** argv)
     }
 
     /* add nodes to the inotify descriptor */
-    node = add_watches(ifd);
+    g_watchnode = add_watches(ifd);
 
     /* wait for events and then handle them */
     while (1)
@@ -447,7 +453,7 @@ int main(int argc, char** argv)
 	    while (i < len)
 	    {
 		event = (struct inotify_event *) &buf[i];
-		if (event->len)
+		if (event->len && (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO))
 		{
 		    /* if sync mode, just call handle_exec */
 		    if (syncmode == 1)
@@ -479,8 +485,38 @@ int main(int argc, char** argv)
 			}
 		    }
 		}
-		i += EVENT_SIZE + event->len;
-	    }
+        else if (event->len && (event->mask & IN_CREATE && event->mask & IN_ISDIR))
+        {
+            for (node = g_watchnode->next; node; node = node->next)
+                if (node->wd == event->wd)
+                    break;
+
+            if (node)
+            {
+                /* combine the name inotify gives with the full path to the file */
+                filename = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + 1);
+                sprintf(filename, "%s/%s", node->path, event->name);
+                watch_dir(node, ifd, strdup(filename), node->section);
+                free(filename);
+            }
+        }
+		else if (event->len && (event->mask & IN_DELETE && event->mask & IN_ISDIR))
+        {
+            for (node = g_watchnode->next; node; node = node->next)
+                if (node->wd == event->wd)
+                    break;
+
+            if (node)
+            {
+                /* combine the name inotify gives with the full path to the file */
+                filename = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + 1);
+                sprintf(filename, "%s/%s", node->path, event->name);
+                unwatch_dir(filename, ifd);
+                free(filename);
+            }
+        }
+        i += EVENT_SIZE + event->len;
+        }
 	    i = 0;
 	}
 		
