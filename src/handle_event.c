@@ -47,7 +47,7 @@ extern void free_all_globals();
 
 static int get_delay_time(struct keyval_node* kv);
 static int get_delay_repeats(struct keyval_node* kv);
-static char* build_exec_line(char* handler, char* filename);
+static char* build_exec_line(char* handler, char* path, char *name);
 static void write_out(int writefd, char* text);
 
 /* exits the handle_event function, conditional based on
@@ -142,8 +142,6 @@ void handle_event(struct inotify_event* event, int writefd)
         if (pathlen > 0)
             if (path[pathlen-1] == '/')
                 path[pathlen-1] = '\0';
-
-        printf("filename: %s,name: %s,path: %s\n",filename,name,path);
 
         if (name == NULL)
             name = filename;
@@ -257,7 +255,7 @@ void handle_event(struct inotify_event* event, int writefd)
         }
 
         /* create executable statement (subs %%) */
-        handlerexec = build_exec_line(handler->value, filename);
+        handlerexec = build_exec_line(handler->value, path, name);
 
         write_out(writefd, "Executing: ");
         write_out(writefd, handlerexec);
@@ -387,7 +385,7 @@ static int get_delay_repeats(struct keyval_node* kv)
  * This returns a newly allocated string that the caller is expected to 
  * free.
  */
-static char* build_exec_line(char* handler, char* filename)
+static char* build_exec_line(char* handler, char* path, char* name)
 {
     char* sanefilename;
     char* handlerline;
@@ -398,8 +396,8 @@ static char* build_exec_line(char* handler, char* filename)
     int reallocsize;
 
     /* build filename with quotes */
-    sanefilename = malloc(strlen(filename) + 3);
-    sprintf(sanefilename, "\"%s\"", filename);
+    sanefilename = malloc(strlen(path) + strlen(name) + 4);
+    sprintf(sanefilename, "\"%s/%s\"", path, name);
 
     handlerline = strdup(handler); 
 
