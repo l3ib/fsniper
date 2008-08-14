@@ -68,6 +68,7 @@ void handle_event(struct inotify_event* event, int writefd)
     char isglob;
     char foundslash;
     char *filename;
+    char *path;
     char *handlerexec;
     char *name;
     char *newpathenv;
@@ -77,6 +78,7 @@ void handle_event(struct inotify_event* event, int writefd)
     const char *mimetype;
     magic_t magic;
     int i, j, sysret, attempts;
+    int pathlen;
     struct keyval_node *child;
     struct keyval_node *handler;
     pcre *regex;
@@ -131,11 +133,20 @@ void handle_event(struct inotify_event* event, int writefd)
         }
 
         /* filename is '/path/foo', but we want to match against 'foo' for globbing and regexs */
-        name = strrchr(filename, '/');
+        name = strrchr(filename, '/') + 1; /* add one to change /foo -> foo */
+
+        pathlen = strlen(filename) - strlen(name);
+        path = malloc(pathlen + 1);
+        strncpy(path, filename, pathlen);
+        /* remove the trailing / from path */
+        if (pathlen > 0)
+            if (path[pathlen-1] == '/')
+                path[pathlen-1] = '\0';
+
+        printf("filename: %s,name: %s,path: %s\n",filename,name,path);
+
         if (name == NULL)
             name = filename;
-        else
-            name += 1; /* name is /foo, we want foo */
 
         if (isglob == 1)
         {
@@ -202,6 +213,7 @@ void handle_event(struct inotify_event* event, int writefd)
     if (abort == 1)
     {
         free(filename);
+        free(path);
         magic_close(magic);
         EXIT_HANDLER(-1);
     }
@@ -306,6 +318,7 @@ void handle_event(struct inotify_event* event, int writefd)
         write_out(writefd, "Handler gave up on retries."); 
 
     free(filename);
+    free(path);
     magic_close(magic);
 
     EXIT_HANDLER(0);
