@@ -53,7 +53,7 @@ watch {
 
         *.extension {
             handler = ./foo a %% b
-            handler = mv %% arc-%%.txt
+            handler = mv %% %D/arc-%F.txt
         }
 
         /.*regex.*/ {
@@ -80,8 +80,11 @@ directory block, we are watching for 4 different patterns of files.  The first
 pattern, image/*, looks for files that match a mime-type pattern.  Any image 
 file will go into this block.  The handler is echo, a standard system command
 that writes to stdout.  fsniper looks for "%%" in the handler line.  The name
-of the file that was just closed is substituted in for the %%.  If no %% is 
-found in the handler line, it appends the filename on the end.
+of the file, including the full path, that was just closed is substituted in 
+for the %%. A "%f" is replaced with the name of the file excluding the path, 
+and a "%d" is replaced with the path to the file excluding the trailing /. 
+If none of these are found in the handler line, it appends the filename on 
+the end.
 
 The second pattern, *.extension, matches a shell glob for any file with the 
 .extension extension.  This pattern has two handlers.  ./foo is a custom 
@@ -131,10 +134,10 @@ Handlers
 ~~~~~~~~
 
 The handler scripts do not always have to be custom written.  You can use the
-%% replacement to do some script-like behavior.  For example, this handler line:
+% replacements to do some script-like behavior.  For example, this handler line:
 
 ----------------
-handler = tar cvz archive-%%.tar.gz %%
+handler = tar cvz archive-%F.tar.gz %%
 ----------------
 
 Creates a tar.gz file containing the file that matches the file pattern.
