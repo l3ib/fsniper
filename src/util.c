@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "util.h"
+#include "keyval_node.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -61,3 +62,57 @@ char* get_config_dir()
     return configdir;
 }
 
+void validate_config(struct keyval_node *config)
+{
+    struct keyval_node *watch;
+    struct keyval_node *dir;
+    struct keyval_node *match;
+    struct keyval_node *child;
+    int failure = 0;
+
+    /* watch should be the only top level block */
+    for (child = config->children; child; child = child->next)
+    {
+        if (strcmp(child->name, "watch") == 0)
+        {
+            watch = child;
+        }
+        else 
+        {
+            fprintf(stderr,"fsniper: invalid top-level block: %s\n",child->name);
+            failure = 1;
+        }
+    }
+
+    for (dir = watch->children; dir; dir = dir->next)
+    {
+        for (match = dir->children; match; match = match->next)
+        {
+            /* the only valid nonblock inside of a path block is recurse */
+            if (match->value != NULL)
+            {
+                if (strcmp(match->name, "recurse") != 0)
+                {
+                    fprintf(stderr,"fsniper: invalid element inside of %s block: %s\n", \
+                            dir->name, match->name);
+                    failure = 1;
+                }
+            }
+                
+            /* only handler elements can go inside match blocks */
+            for (child = match->children; child; child = child->next)
+            {
+                if (strcmp(child->name, "handler") != 0)
+                {
+                    fprintf(stderr,"fsniper: invalid element inside %s's \"%s\" match block: %s\n", \ 
+                           dir->name, match->name,child->name);
+                    failure = 1;
+                }
+            }
+        }
+    }
+
+    if (failure)
+        exit(-1);
+
+}

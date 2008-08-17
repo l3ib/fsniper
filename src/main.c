@@ -407,11 +407,14 @@ int main(int argc, char** argv)
 
     if (verbose) log_write("Parsing config file: %s\n", configfile);
     config = keyval_parse_file(configfile);
+
     if ((error_str = keyval_get_error())) {
         fprintf(stderr, "%s", error_str);
         free(error_str);
         exit(1);
     }
+
+    validate_config(config);
 
     /* add nodes to the inotify descriptor */
     g_watchnode = add_watches(ifd);
