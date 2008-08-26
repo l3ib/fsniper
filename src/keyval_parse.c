@@ -232,7 +232,7 @@ struct keyval_node * keyval_parse_value(struct keyval_token ** token_) {
         if (!token->next) {
             /* trailing null means we're at the end of a file... */
             struct keyval_node * node = calloc(1, sizeof(struct keyval_node));
-            node->comment = keyval_tokens_to_string(first, token);
+            node->value = keyval_tokens_to_string(first, token);
             *token_ = token;
             return node;
         }
