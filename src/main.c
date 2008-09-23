@@ -126,6 +126,7 @@ void free_all_globals()
 
     /* free watchnode elements */
     free_watchnodes();
+    free(g_watchnode);
 
     /* free / close any remaining pipes in the list */    
     if (pipe_list_head)
