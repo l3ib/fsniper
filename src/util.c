@@ -70,14 +70,14 @@ void validate_config(struct keyval_node *config)
     struct keyval_node *child;
     int failure = 0;
 
-    /* watch should be the only top level block */
+    /* watch, delay_time and delay_repeats should be the only top level blocks */
     for (child = config->children; child; child = child->next)
     {
         if (strcmp(child->name, "watch") == 0)
         {
             watch = child;
         }
-        else 
+        else if (strcmp(child->name, "delay_time") != 0 && strcmp(child->name, "delay_repeats") != 0)
         {
             fprintf(stderr,"fsniper: invalid top-level block: %s\n",child->name);
             failure = 1;
