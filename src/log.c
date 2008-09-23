@@ -40,10 +40,10 @@ extern int logtostdout;
 int log_open()
 {
     char *configdir, *logfile;
-    configdir = get_config_dir();
 
     if (!logtostdout)
     {
+        configdir = get_config_dir();
         logfile = malloc(strlen(configdir) + strlen("/log") + 1);
         sprintf(logfile, "%s/log", configdir);
         free(configdir);	
