@@ -206,6 +206,10 @@ void handle_event(struct inotify_event* event, int writefd)
         }
         if (abort == 0)
             break;
+
+        /* if we make it here we need to free the path 
+         * (it's allocated every loop iteration) */
+        free(path);
     }
 
     if (abort == 1)
