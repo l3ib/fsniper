@@ -261,9 +261,10 @@ void handle_event(struct inotify_event* event, int writefd)
         /* create executable statement (subs %%) */
         handlerexec = build_exec_line(handler->value, path, name);
 
-        write_out(writefd, "Executing: ");
-        write_out(writefd, handlerexec);
-        write_out(writefd, "\n");
+        temp = malloc(11 + strlen(handlerexec) + 1 + 1);
+        sprintf(temp, "Executing: %s\n", handlerexec);
+        write_out(writefd, temp);
+        free(temp);
 
         sysret = WEXITSTATUS(system(handlerexec));		
 
@@ -272,13 +273,9 @@ void handle_event(struct inotify_event* event, int writefd)
          * you could get funny results. */
         if (verbose)
         {
-            temp = malloc(4);
-            sprintf(temp, "%d", sysret);
-            write_out(writefd, "Handler \"");
-            write_out(writefd, handler->value);
-            write_out(writefd, "\" returned exit code ");
+            temp = malloc(9 + strlen(handler->value) + 21 + 4 + 1 + 1);
+            sprintf(temp, "Handler \"%s\" returned exit code %d\n", handler->value, sysret);
             write_out(writefd, temp);
-            write_out(writefd, "\n");
 
             free(temp);
         }
@@ -287,9 +284,11 @@ void handle_event(struct inotify_event* event, int writefd)
          * to calling the next handler */
         if (sysret == 127)
         {
-            write_out(writefd, "Could not execute handler \"");
-            write_out(writefd, handler->value);
-            write_out(writefd, "\", trying next one.\n");
+            temp = malloc(27 + strlen(handler->value) + 20 + 1);
+            sprintf("Could not execute handler \"%s\", trying next one.\n", handler->value);
+            write_out(writefd, temp);
+
+            free(temp);
         }
 
         free(handlerexec);

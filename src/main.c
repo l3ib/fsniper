@@ -237,7 +237,7 @@ struct pipe_list * pipe_list_remove(struct pipe_list * head,
 
 int main(int argc, char** argv)
 {
-    int ifd, len, i = 0, selectret = 0, maxfd, retryselect, pid;
+    int ifd, len = 0, i = 0, selectret = 0, maxfd, retryselect, pid;
     char buf[BUF_LEN]; 
     char *configdir;
     char *pidfilename;
