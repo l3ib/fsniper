@@ -1,4 +1,19 @@
-Sat Aug 2 17:03:28 EDT 2008     Javeed Shaikh <syscrash2k@gmail.com>
+Wed Sep 24 18:07:13 EDT 2008	Dave Foster <daf@minuslab.net
+	* Cleaned up handle_event and fixed several memory leaks.
+
+Sat Aug 16 22:50:45 EDT 2008	Andrew Yates <andrew@andrewyates.net>
+	* Added config validation.
+
+Thu Aug 14 15:12:22 EDT 2008	Andrew Yates <andrew@andrewyates.net>
+	* Added %f and %d replacement strings as alternatives to %%.
+
+Tue Aug 12 14:25:55 EDT 2008	Andrew Yates <andrew@andrewyates.net>
+	* Include version and pid in the log opened message.
+
+Tue Aug 12 13:27:53 EDT 2008	Andrew Yates <andrew@andrewyates.net>
+	* Append to log instead of overwriting it.
+
+Sat Aug 2 17:03:28 EDT 2008	Javeed Shaikh <syscrash2k@gmail.com>
 	* Fixed regression in config parser that caused fsniper to 
        	  crash on comments.
     
