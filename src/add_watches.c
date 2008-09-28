@@ -120,6 +120,8 @@ void recurse_add(struct watchnode* node, int fd, char *directory, struct keyval_
         }
         free(path);
     }
+
+		closedir(dir);
 }
 
 /* parses the config and adds inotify watches to the fd */
