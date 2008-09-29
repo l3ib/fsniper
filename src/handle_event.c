@@ -215,7 +215,6 @@ void handle_event(struct inotify_event* event, int writefd)
     if (abort == 1)
     {
         free(filename);
-        free(path);
         magic_close(magic);
         EXIT_HANDLER(-1);
     }
