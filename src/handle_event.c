@@ -75,6 +75,7 @@ void handle_event(struct inotify_event* event, int writefd)
     char *configdir;
     char *scriptdir;
     char *temp;
+    char *mimetypestr;
     const char *mimetype;
     magic_t magic;
     int i, j, sysret, attempts;
@@ -103,17 +104,6 @@ void handle_event(struct inotify_event* event, int writefd)
     /* combine the name inotify gives with the full path to the file */
     filename = malloc(strlen(node->path) + strlen("/") + strlen(event->name) + 1);
     sprintf(filename, "%s/%s", node->path, event->name);
-
-    /* does perror work here? should we also call exit()? */
-    if ( (magic = magic_open(MAGIC_MIME)) == NULL)
-        perror("magic_open");
-
-    if (magic_load(magic, NULL) < 0)
-        perror("magic_load");
-
-    mimetype = magic_file(magic, filename);
-    if (mimetype == NULL)
-        perror("magic_file");
 
     /* match the config's expression against a glob, regex, or mimetype */
     abort = 0;
@@ -171,10 +161,41 @@ void handle_event(struct inotify_event* event, int writefd)
                 break;
         }
 		
-        /* parse the mimetype to see if it matches the one in the config */
-        for (i=0, j=0; isglob == 0 && mimetype[i] && child->name[j] && abort == 0; i++, j++)
+        /* parse the mimetype to see if it matches the one in the config .
+           if we make it here, it means mimetype is the last possible thing,
+           so here we init the magic file business and whatnot. */
+        
+        if ( (magic = magic_open(MAGIC_MIME)) == NULL)
         {
-            if (!mimetype[i])
+            write_out(writefd, "Error: could not open libmagic (magic_open)");
+
+            /* can't set abort here becuase magic was never opened, so 
+             * magic_free below would fail hard. */
+            free(filename);
+            EXIT_HANDLER(-1);
+        }
+
+        if (magic_load(magic, NULL) < 0)
+        {
+            write_out(writefd, "Error: magic_load failed.");
+            abort = 1;
+            break;
+        }
+
+        mimetype = magic_file(magic, filename);
+        if (mimetype == NULL)
+        {
+            write_out(writefd, "Error: could not determine mime type (magic_file)");
+            abort = 1;
+            break;
+        }
+
+        mimetypestr = strdup(mimetype);
+        magic_close(magic);
+
+        for (i=0, j=0; isglob == 0 && mimetypestr[i] && child->name[j] && abort == 0; i++, j++)
+        {
+            if (!mimetypestr[i])
             {
                 abort = 1;
                 break;
@@ -188,14 +209,14 @@ void handle_event(struct inotify_event* event, int writefd)
             if (foundslash == 0 && child->name[j] == '/')
                 foundslash = 1;
 
-            if (mimetype[i] != child->name[j] && child->name[j] != '*')
+            if (mimetypestr[i] != child->name[j] && child->name[j] != '*')
             {
                 abort = 1;
                 break;
             }
             else if (child->name[j] == '*' && foundslash == 0)
             {
-                while (mimetype[i] != '/')
+                while (mimetypestr[i] != '/')
                     i++;
                 while (child->name[j] != '/')
                     j++;
@@ -204,8 +225,13 @@ void handle_event(struct inotify_event* event, int writefd)
             else if (child->name[j] == '*' && foundslash == 1)
                 break;
         }
+
+        free(mimetypestr);
+
         if (abort == 0)
+        {
             break;
+        }
 
         /* if we make it here we need to free the path 
          * (it's allocated every loop iteration) */
@@ -319,7 +345,6 @@ void handle_event(struct inotify_event* event, int writefd)
 
     free(filename);
     free(path);
-    magic_close(magic);
 
     EXIT_HANDLER(0);
 }
