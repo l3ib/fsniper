@@ -178,6 +178,7 @@ void handle_event(struct inotify_event* event, int writefd)
         if (magic_load(magic, NULL) < 0)
         {
             write_out(writefd, "Error: magic_load failed.");
+						magic_close(magic);
             abort = 1;
             break;
         }
@@ -186,6 +187,7 @@ void handle_event(struct inotify_event* event, int writefd)
         if (mimetype == NULL)
         {
             write_out(writefd, "Error: could not determine mime type (magic_file)");
+						magic_close(magic);
             abort = 1;
             break;
         }
@@ -241,7 +243,6 @@ void handle_event(struct inotify_event* event, int writefd)
     if (abort == 1)
     {
         free(filename);
-        magic_close(magic);
         EXIT_HANDLER(-1);
     }
 
