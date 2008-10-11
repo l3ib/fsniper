@@ -113,6 +113,7 @@ void handle_event(struct inotify_event* event, int writefd)
         abort = 0;
         foundslash = 0;
         isglob = 1;
+				if (!child->name) continue;
         for (i=0; child->name[i]; i++)
         {
             if (child->name[i] == '/')
@@ -275,10 +276,10 @@ void handle_event(struct inotify_event* event, int writefd)
     delay_repeats = get_delay_repeats(child);
     delay_time = get_delay_time(child);
 	
-    while (handler && handler->name && (attempts < delay_repeats || delay_repeats == 0))
+    while (handler && (attempts < delay_repeats || delay_repeats == 0))
     {
         /* if not a handler, skip it */
-        if (strcmp(handler->name, "handler") != 0)
+			if (!handler->name || (strcmp(handler->name, "handler") != 0))
         {
             handler = handler->next;
             continue;

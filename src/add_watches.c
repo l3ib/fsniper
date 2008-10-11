@@ -143,13 +143,14 @@ struct watchnode* add_watches(int fd)
     node->next = NULL;
 
     /* find watch child from main cfg item */
-    for (child = config->children; child; child = child->next)
+    for (child = config->children; child; child = child->next) {
+			if (!child->name) continue;
         if (strcmp(child->name, "watch") == 0)
         {
             startchild = child;
             break;
         }
-
+		}
     if (!startchild)
     {
         if (verbose) log_write("No start child found!");

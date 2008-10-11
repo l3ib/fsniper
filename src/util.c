@@ -73,6 +73,7 @@ void validate_config(struct keyval_node *config)
     /* watch, delay_time and delay_repeats should be the only top level blocks */
     for (child = config->children; child; child = child->next)
     {
+			if (!child->name) continue;
         if (strcmp(child->name, "watch") == 0)
         {
             watch = child;
@@ -102,7 +103,8 @@ void validate_config(struct keyval_node *config)
             /* only handler elements can go inside match blocks */
             for (child = match->children; child; child = child->next)
             {
-                if (strcmp(child->name, "handler") != 0)
+							if (!child->name) continue;
+							if (strcmp(child->name, "handler") != 0)
                 {
                     fprintf(stderr,"fsniper: invalid element inside %s's \"%s\" match block: %s\n", \ 
                            dir->name, match->name,child->name);
