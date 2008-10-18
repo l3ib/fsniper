@@ -82,6 +82,7 @@ void validate_config(struct keyval_node *config)
         {
             fprintf(stderr,"fsniper: invalid top-level block: %s\n",child->name);
             failure = 1;
+            exit(-1); /* we can't recover from a missing top-level block */
         }
     }
 
