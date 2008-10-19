@@ -55,7 +55,7 @@ struct watchnode* watch_dir(struct watchnode* node, int ifd, char *dir, struct k
 
     retval = watchnode_create(node,
                               inotify_add_watch(ifd, dir, IN_CLOSE_WRITE | IN_MOVED_TO |
-                                                          IN_CREATE | IN_DELETE),
+                                                IN_CREATE | IN_DELETE),
                               strdup(dir),
                               kv_section);
 
@@ -121,7 +121,7 @@ void recurse_add(struct watchnode* node, int fd, char *directory, struct keyval_
         free(path);
     }
 
-		closedir(dir);
+    closedir(dir);
 }
 
 /* parses the config and adds inotify watches to the fd */
@@ -144,13 +144,13 @@ struct watchnode* add_watches(int fd)
 
     /* find watch child from main cfg item */
     for (child = config->children; child; child = child->next) {
-			if (!child->name) continue;
+        if (!child->name) continue;
         if (strcmp(child->name, "watch") == 0)
         {
             startchild = child;
             break;
         }
-		}
+    }
     if (!startchild)
     {
         if (verbose) log_write("No start child found!");

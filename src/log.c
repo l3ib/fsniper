@@ -65,7 +65,7 @@ int log_open()
     	
     	char *version = PACKAGE_VERSION;
     	char *openstr = malloc(strlen("Log opened: fsniper version ") + strlen(version) + \
-    		strlen(" (pid: ") + pidlen + strlen(")\n") + 1);
+                               strlen(" (pid: ") + pidlen + strlen(")\n") + 1);
     		
     	sprintf(openstr, "Log opened: fsniper version %s (pid: %d)\n", version, pid);
         log_write(openstr);

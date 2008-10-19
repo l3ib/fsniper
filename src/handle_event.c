@@ -113,7 +113,7 @@ void handle_event(struct inotify_event* event, int writefd)
         abort = 0;
         foundslash = 0;
         isglob = 1;
-				if (!child->name) continue;
+        if (!child->name) continue;
         for (i=0; child->name[i]; i++)
         {
             if (child->name[i] == '/')
@@ -179,7 +179,7 @@ void handle_event(struct inotify_event* event, int writefd)
         if (magic_load(magic, NULL) < 0)
         {
             write_out(writefd, "Error: magic_load failed.");
-						magic_close(magic);
+            magic_close(magic);
             abort = 1;
             break;
         }
@@ -188,7 +188,7 @@ void handle_event(struct inotify_event* event, int writefd)
         if (mimetype == NULL)
         {
             write_out(writefd, "Error: could not determine mime type (magic_file)");
-						magic_close(magic);
+            magic_close(magic);
             abort = 1;
             break;
         }
@@ -279,7 +279,7 @@ void handle_event(struct inotify_event* event, int writefd)
     while (handler && (attempts < delay_repeats || delay_repeats == 0))
     {
         /* if not a handler, skip it */
-			if (!handler->name || (strcmp(handler->name, "handler") != 0))
+        if (!handler->name || (strcmp(handler->name, "handler") != 0))
         {
             handler = handler->next;
             continue;

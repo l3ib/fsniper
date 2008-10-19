@@ -30,13 +30,13 @@
  */
 struct watchnode* watchnode_create(struct watchnode* node, int wd, char* path, struct keyval_node* section)
 {
-     node->next = malloc(sizeof(struct watchnode));
-     node->next->wd = wd;
-     node->next->path = path;
-     node->next->section = section;
-     node->next->next= NULL;
+    node->next = malloc(sizeof(struct watchnode));
+    node->next->wd = wd;
+    node->next->path = path;
+    node->next->section = section;
+    node->next->next= NULL;
 
-     return node->next;
+    return node->next;
 }
 
 /**
