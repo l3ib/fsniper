@@ -428,7 +428,7 @@ static char* build_exec_line(char* handler, char* path, char* name)
 
     /* build filename with quotes */
     sanefilename = malloc(strlen(path) + strlen(name) + 4);
-    sprintf(sanefilename, "\"%s/%s\"", path, name);
+    sprintf(sanefilename, "'%s/%s'", path, name);
 
     handlerline = strdup(handler); 
 
