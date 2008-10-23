@@ -153,7 +153,10 @@ char *get_pid_filename()
 void write_pid_file(char *pidfilename)
 {
     FILE *pidfile;
+    mode_t umask_old;
+    umask_old = umask(0177);
     pidfile = fopen(pidfilename, "w");
+    umask(umask_old);
     fprintf(pidfile, "%d", getpid());
     fclose(pidfile);
 }
