@@ -49,6 +49,7 @@ static int get_delay_time(struct keyval_node* kv);
 static int get_delay_repeats(struct keyval_node* kv);
 static char* build_exec_line(char* handler, char* path, char *name);
 static void write_out(int writefd, char* text);
+static char* escape_quote(char *str);
 
 /* exits the handle_event function, conditional based on
  * whether it needs to simply return (in sync mode) or do
@@ -401,6 +402,8 @@ static int get_delay_repeats(struct keyval_node* kv)
     return 0;
 }
 
+
+
 /**
  * Builds the line to execute by the handler.
  *
@@ -417,6 +420,8 @@ static int get_delay_repeats(struct keyval_node* kv)
 static char* build_exec_line(char* handler, char* path, char* name)
 {
     char* sanefilename;
+    char* sanepath;
+    char* sanename;
     char* handlerline;
     char* replacename;
     char* percentmod = NULL;
@@ -427,8 +432,10 @@ static char* build_exec_line(char* handler, char* path, char* name)
     int reallocsize;
 
     /* build filename with quotes */
-    sanefilename = malloc(strlen(path) + strlen(name) + 4);
-    sprintf(sanefilename, "'%s/%s'", path, name);
+    sanepath = escape_quote(path);
+    sanename = escape_quote(name);
+    sanefilename = malloc(strlen(sanepath) + strlen(sanename) + 4);
+    sprintf(sanefilename, "\"%s/%s\"", sanepath, sanename);
 
     handlerline = strdup(handler); 
 
@@ -444,9 +451,9 @@ static char* build_exec_line(char* handler, char* path, char* name)
         if (percentmod[0] == '%')
             replacename = sanefilename;
         else if (percentmod[0] == 'F' || percentmod[0] == 'f')
-            replacename = name;
+            replacename = sanename;
         else if (percentmod[0] == 'D' || percentmod[0] == 'd')
-            replacename = path;
+            replacename = sanepath;
         else
         {
             log_write("Error: %%%c is not a valid substitution string\n",percentmod[0]);
@@ -475,6 +482,8 @@ static char* build_exec_line(char* handler, char* path, char* name)
     }
 
     free(sanefilename);
+    free(sanepath);
+    free(sanename);
 
     return handlerline;
 }
@@ -484,3 +493,35 @@ void write_out(int writefd, char* text)
     write(writefd, text, strlen(text));
 }
 
+/**
+ * Escapes any double quotes (") found in str.
+ *
+ * This returns a newly allocated string that the caller is expected to 
+ * free.
+ */
+static char* escape_quote(char* str)
+{
+    int quotes = 0;
+    char* newstr;
+    char* oldc = str;
+    char* newc;
+
+    while(*oldc != '\0') {
+        if (*oldc == '"')
+            quotes++;
+        oldc++;
+    }
+    
+    newstr = malloc(strlen(str) + quotes + 1);
+    newc = newstr;
+    oldc = str;
+    while (*oldc != '\0') {
+        if (*oldc == '"') {
+            *newc = '\\';
+            newc++;
+        }
+        *newc++ = *oldc++;
+    }
+
+    return newstr;
+}
