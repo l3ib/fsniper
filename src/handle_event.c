@@ -522,7 +522,7 @@ static char* escape_quote(char* str)
         }
         *newc++ = *oldc++;
     }
-    newc = '\0';
+    *newc = '\0';
 
     return newstr;
 }
