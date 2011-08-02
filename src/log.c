@@ -40,6 +40,8 @@ extern int logtostdout;
 int log_open()
 {
     char *configdir, *logfile;
+    char *version = PACKAGE_VERSION;
+    char *openstr = NULL;
 
     if (!logtostdout)
     {
@@ -63,8 +65,7 @@ int log_open()
     	int pidlen = 1;
     	while (i/=10) pidlen++;
     	
-    	char *version = PACKAGE_VERSION;
-    	char *openstr = malloc(strlen("Log opened: fsniper version ") + strlen(version) + \
+    	openstr = malloc(strlen("Log opened: fsniper version ") + strlen(version) + \
                                strlen(" (pid: ") + pidlen + strlen(")\n") + 1);
     		
     	sprintf(openstr, "Log opened: fsniper version %s (pid: %d)\n", version, pid);
@@ -82,7 +83,7 @@ int log_write(char *str, ...)
     time_t t;
     char readabletime[30];
     t = time(NULL);
-    strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
+    strftime(readabletime, sizeof(readabletime), "%Y-%m-%d %H:%M:%S", localtime(&t));
 
     fprintf(_logfd, "%s ", readabletime);
 
