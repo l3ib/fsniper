@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <syslog.h>
 #include <time.h>
 #include "log.h"
 #include "util.h"
@@ -33,9 +34,9 @@
 #include <efence.h>
 #endif
 
-FILE *_logfd;
+FILE *_logfd = NULL;
 
-extern int logtostdout;
+extern int logtype;
 
 int log_open()
 {
@@ -43,21 +44,29 @@ int log_open()
     char *version = PACKAGE_VERSION;
     char *openstr = NULL;
 
-    if (!logtostdout)
+    switch (logtype)
     {
-        configdir = get_config_dir();
-        logfile = malloc(strlen(configdir) + strlen("/log") + 1);
-        sprintf(logfile, "%s/log", configdir);
-        free(configdir);	
+        case LOG_FILE :
+            configdir = get_config_dir();
+            logfile = malloc(strlen(configdir) + strlen("/log") + 1);
+            sprintf(logfile, "%s/log", configdir);
 
-        _logfd = fopen(logfile, "a");
+            _logfd = fopen(logfile, "a");
 
-        free(logfile);
+            free(configdir);
+            free(logfile);
+            break;
+        case LOG_STDOUT :
+            _logfd = stdout;
+            break;
+        case LOG_SYS :
+            openlog("fsniper", LOG_CONS, LOG_USER);
+        case LOG_NONE :
+            _logfd = fopen("/dev/null", "a");
+            break;
     }
-    else
-        _logfd = stdout;
 
-    if (_logfd)
+    if (logtype != LOG_SYS && _logfd)
     {
     	int pid = getpid();
     	
@@ -73,13 +82,13 @@ int log_open()
         free(openstr);
     }
 
-    return (_logfd != NULL);	
+    return (_logfd != NULL);
 }
 
 int log_write(char *str, ...)
 {
     va_list va;
-    int len;
+    int len = 0;
     time_t t;
     char readabletime[30];
     t = time(NULL);
@@ -88,10 +97,14 @@ int log_write(char *str, ...)
     fprintf(_logfd, "%s ", readabletime);
 
     va_start(va, str);
-    len = vfprintf(_logfd, str, va);
+    if (logtype != LOG_SYS)
+    {
+      len = vfprintf(_logfd, str, va);
+      fflush(_logfd);
+    } else
+      vsyslog(LOG_INFO, str, va);
     va_end(va);
 
-    fflush(_logfd);
     return len;
 }
 
@@ -99,6 +112,9 @@ int log_close()
 {
     if (_logfd && _logfd != stdout)
         fclose(_logfd);
+
+    if (logtype == LOG_SYS)
+        closelog();
 
     return 1;
 }

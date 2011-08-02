@@ -4,6 +4,7 @@ this tarball.
 Dependencies:
 libmagic (included with 'file')
 libpcre (may be included in your distribution's pcre package)
+syslog (optional)
 
 To install fsniper:
 ./configure

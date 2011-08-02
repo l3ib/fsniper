@@ -66,8 +66,7 @@ int verbose = 0;
 /* synchronous mode, no forking for handlers */
 int syncmode = 0;
 
-/* whether to log to stdout or not */
-int logtostdout = 0;
+int logtype = 0;
 
 /* inotify file descriptor */
 int ifd;
@@ -277,6 +276,8 @@ int main(int argc, char** argv)
     argument_register(argument, "verbose", "Turns on debug text.", 0);
     argument_register(argument, "sync", "Sync mode (for debugging).", 0);
     argument_register(argument, "log-to-stdout", "Log to stdout alongside the usual log file.", 0);
+    argument_register(argument, "log-to-file",   "Log to file (usually - ~/.config/fsniper/log)", 0);
+    argument_register(argument, "log-to-syslog", "Log to system log.", 0);
 
     if ((error_str = argument_parse(argument, argc, argv))) {
 	fprintf(stderr, "Error in arguments: %s", error_str);
@@ -306,8 +307,16 @@ int main(int argc, char** argv)
     if (argument_exists(argument, "sync"))
 	syncmode = 1;
 
+    if (argument_exists(argument, "log-to-file")) {
+	logtype = LOG_FILE;
+    }
+
     if (argument_exists(argument, "log-to-stdout")) {
-	logtostdout = 1;
+	logtype = LOG_STDOUT;
+    }
+
+    if (argument_exists(argument, "log-to-syslog")) {
+	logtype = LOG_SYS;
     }
 
     /* get config dir (must free this) */
