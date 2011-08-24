@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <syslog.h>
 #include <time.h>
 #include "log.h"
 #include "util.h"
@@ -32,6 +31,10 @@
 
 #ifdef USE_EFENCE
 #include <efence.h>
+#endif
+
+#ifdef USE_SYSLOG
+#include <syslog.h>
 #endif
 
 FILE *_logfd = NULL;
@@ -59,14 +62,20 @@ int log_open()
         case LOG_STDOUT :
             _logfd = stdout;
             break;
+#ifdef USE_SYSLOG
         case LOG_SYS :
             openlog("fsniper", LOG_CONS | LOG_PID, LOG_USER);
+#endif
         case LOG_NONE :
             _logfd = fopen("/dev/null", "a");
             break;
     }
 
+#ifdef USE_SYSLOG
     if (logtype != LOG_SYS && _logfd)
+#else
+    if (_logfd)
+#endif
     {
     	int pid = getpid();
     	
@@ -97,12 +106,17 @@ int log_write(char *str, ...)
     fprintf(_logfd, "%s ", readabletime);
 
     va_start(va, str);
+#ifdef USE_SYSLOG
     if (logtype != LOG_SYS)
     {
       len = vfprintf(_logfd, str, va);
       fflush(_logfd);
     } else
       vsyslog(LOG_INFO, str, va);
+#else
+    len = vfprintf(_logfd, str, va);
+    fflush(_logfd);
+#endif
     va_end(va);
 
     return len;
@@ -113,8 +127,10 @@ int log_close()
     if (_logfd && _logfd != stdout)
         fclose(_logfd);
 
+#ifdef USE_SYSLOG
     if (logtype == LOG_SYS)
         closelog();
+#endif
 
     return 1;
 }
