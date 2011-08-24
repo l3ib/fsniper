@@ -202,8 +202,9 @@ Command Line Options
 		Turns on debug text.
 	--sync
 		Sync mode (for debugging).
-	--log-to-stdout
-		Log to stdout alongside the usual log file.
+	--log-to=[arg]
+		Log messages with specified way.
+        Can be: stdout, file, syslog. "file" by default.
 --------------------
 
 Special Note: Firefox
