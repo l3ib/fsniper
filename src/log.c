@@ -60,7 +60,7 @@ int log_open()
             _logfd = stdout;
             break;
         case LOG_SYS :
-            openlog("fsniper", LOG_CONS, LOG_USER);
+            openlog("fsniper", LOG_CONS | LOG_PID, LOG_USER);
         case LOG_NONE :
             _logfd = fopen("/dev/null", "a");
             break;
