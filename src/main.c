@@ -67,6 +67,7 @@ int verbose = 0;
 int syncmode = 0;
 
 int logtype = 0;
+char *log_arg = NULL;
 
 /* inotify file descriptor */
 int ifd;
@@ -275,9 +276,9 @@ int main(int argc, char** argv)
     argument_register(argument, "daemon", "Run as a daemon.", 0);
     argument_register(argument, "verbose", "Turns on debug text.", 0);
     argument_register(argument, "sync", "Sync mode (for debugging).", 0);
-    argument_register(argument, "log-to-stdout", "Log to stdout alongside the usual log file.", 0);
-    argument_register(argument, "log-to-file",   "Log to file (usually - ~/.config/fsniper/log)", 0);
-    argument_register(argument, "log-to-syslog", "Log to system log.", 0);
+    argument_register(argument, "log-to-stdout", "Deprecated, use \"--log-to=stdout\" instead", 0);
+    argument_register(argument, "log-to", "Log messages with specified way. " \
+                                "Can be: stdout, file, syslog. \"file\" by default.", 1);
 
     if ((error_str = argument_parse(argument, argc, argv))) {
 	fprintf(stderr, "Error in arguments: %s", error_str);
@@ -307,16 +308,20 @@ int main(int argc, char** argv)
     if (argument_exists(argument, "sync"))
 	syncmode = 1;
 
-    if (argument_exists(argument, "log-to-file")) {
-	logtype = LOG_FILE;
-    }
 
     if (argument_exists(argument, "log-to-stdout"))
         fprintf(stderr, "Warning, this option is deprecated, " \
                         "please use new syntax: \"--log-to=stdout\".\n");
 
-    if (argument_exists(argument, "log-to-syslog")) {
-	logtype = LOG_SYS;
+    logtype = LOG_FILE;
+    if (argument_exists(argument, "log-to") && \
+        (log_arg = argument_get_value(argument, "log-to")) != NULL)
+    {
+        if (strcmp(log_arg, "stdout") == 0)
+	    logtype = LOG_STDOUT;
+
+        if (strcmp(log_arg, "syslog") == 0)
+	    logtype = LOG_SYS;
     }
 
     /* get config dir (must free this) */
