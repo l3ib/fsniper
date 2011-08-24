@@ -311,9 +311,9 @@ int main(int argc, char** argv)
 	logtype = LOG_FILE;
     }
 
-    if (argument_exists(argument, "log-to-stdout")) {
-	logtype = LOG_STDOUT;
-    }
+    if (argument_exists(argument, "log-to-stdout"))
+        fprintf(stderr, "Warning, this option is deprecated, " \
+                        "please use new syntax: \"--log-to=stdout\".\n");
 
     if (argument_exists(argument, "log-to-syslog")) {
 	logtype = LOG_SYS;
