@@ -40,6 +40,8 @@ if test "$SYSLOG" = "yes"; then
 	AC_CHECK_HEADER([syslog.h],[],
 		[AC_MSG_ERROR([syslog.h required for syslog support])])
     AC_DEFINE(USE_SYSLOG, 1, [Define to enable syslog support])
+else
+    AC_MSG_WARN([Syslog support will be disabled])
 fi
 
 AC_SUBST(FLAGS)
