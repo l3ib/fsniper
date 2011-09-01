@@ -33,6 +33,17 @@ if test "$EFENCE" = "yes"; then
 	LIBS="-lefence $LIBS"
 fi
 
+AC_ARG_ENABLE([syslog],
+AC_HELP_STRING([--disable-syslog],[build without syslog support [[default=yes]]]),
+  [SYSLOG=$enableval], [SYSLOG="yes"])
+if test "$SYSLOG" = "yes"; then
+	AC_CHECK_HEADER([syslog.h],[],
+		[AC_MSG_ERROR([syslog.h required for syslog support])])
+    AC_DEFINE(USE_SYSLOG, 1, [Define to enable syslog support])
+else
+    AC_MSG_WARN([Syslog support will be disabled])
+fi
+
 AC_SUBST(FLAGS)
 
 AC_CONFIG_FILES( Makefile src/Makefile )

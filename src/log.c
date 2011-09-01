@@ -33,29 +33,49 @@
 #include <efence.h>
 #endif
 
-FILE *_logfd;
+#ifdef USE_SYSLOG
+#include <syslog.h>
+#endif
 
-extern int logtostdout;
+FILE *_logfd = NULL;
+
+extern int logtype;
 
 int log_open()
 {
     char *configdir, *logfile;
+    char *version = PACKAGE_VERSION;
+    char *openstr = NULL;
 
-    if (!logtostdout)
+    switch (logtype)
     {
-        configdir = get_config_dir();
-        logfile = malloc(strlen(configdir) + strlen("/log") + 1);
-        sprintf(logfile, "%s/log", configdir);
-        free(configdir);	
+        case LOG_FILE :
+            configdir = get_config_dir();
+            logfile = malloc(strlen(configdir) + strlen("/log") + 1);
+            sprintf(logfile, "%s/log", configdir);
 
-        _logfd = fopen(logfile, "a");
+            _logfd = fopen(logfile, "a");
 
-        free(logfile);
+            free(configdir);
+            free(logfile);
+            break;
+        case LOG_STDOUT :
+            _logfd = stdout;
+            break;
+#ifdef USE_SYSLOG
+        case LOG_SYS :
+            openlog("fsniper", LOG_CONS | LOG_PID, LOG_USER);
+#endif
+        case LOG_NONE :
+            _logfd = fopen("/dev/null", "a");
+            break;
     }
-    else
-        _logfd = stdout;
 
+#ifdef USE_SYSLOG
+    if (logtype != LOG_SYS && _logfd)
+#else
     if (_logfd)
+#endif
     {
     	int pid = getpid();
     	
@@ -63,8 +83,7 @@ int log_open()
     	int pidlen = 1;
     	while (i/=10) pidlen++;
     	
-    	char *version = PACKAGE_VERSION;
-    	char *openstr = malloc(strlen("Log opened: fsniper version ") + strlen(version) + \
+    	openstr = malloc(strlen("Log opened: fsniper version ") + strlen(version) + \
                                strlen(" (pid: ") + pidlen + strlen(")\n") + 1);
     		
     	sprintf(openstr, "Log opened: fsniper version %s (pid: %d)\n", version, pid);
@@ -72,25 +91,34 @@ int log_open()
         free(openstr);
     }
 
-    return (_logfd != NULL);	
+    return (_logfd != NULL);
 }
 
 int log_write(char *str, ...)
 {
     va_list va;
-    int len;
+    int len = 0;
     time_t t;
     char readabletime[30];
     t = time(NULL);
-    strftime(readabletime, sizeof(readabletime), "%F %T", localtime(&t));
+    strftime(readabletime, sizeof(readabletime), "%Y-%m-%d %H:%M:%S", localtime(&t));
 
     fprintf(_logfd, "%s ", readabletime);
 
     va_start(va, str);
+#ifdef USE_SYSLOG
+    if (logtype != LOG_SYS)
+    {
+      len = vfprintf(_logfd, str, va);
+      fflush(_logfd);
+    } else
+      vsyslog(LOG_INFO, str, va);
+#else
     len = vfprintf(_logfd, str, va);
+    fflush(_logfd);
+#endif
     va_end(va);
 
-    fflush(_logfd);
     return len;
 }
 
@@ -98,6 +126,11 @@ int log_close()
 {
     if (_logfd && _logfd != stdout)
         fclose(_logfd);
+
+#ifdef USE_SYSLOG
+    if (logtype == LOG_SYS)
+        closelog();
+#endif
 
     return 1;
 }

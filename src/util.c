@@ -64,10 +64,10 @@ char* get_config_dir()
 
 void validate_config(struct keyval_node *config)
 {
-    struct keyval_node *watch;
-    struct keyval_node *dir;
-    struct keyval_node *match;
-    struct keyval_node *child;
+    struct keyval_node *watch = NULL;
+    struct keyval_node *dir   = NULL;
+    struct keyval_node *match = NULL;
+    struct keyval_node *child = NULL;
     int failure = 0;
 
     /* watch, delay_time and delay_repeats should be the only top level blocks */
@@ -107,7 +107,7 @@ void validate_config(struct keyval_node *config)
                 if (!child->name) continue;
                 if (strcmp(child->name, "handler") != 0)
                 {
-                    fprintf(stderr,"fsniper: invalid element inside %s's \"%s\" match block: %s\n", \ 
+                    fprintf(stderr,"fsniper: invalid element inside %s's \"%s\" match block: %s\n", \
                             dir->name, match->name,child->name);
                     failure = 1;
                 }
