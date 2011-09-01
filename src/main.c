@@ -322,14 +322,14 @@ int main(int argc, char** argv)
         (log_arg = argument_get_value(argument, "log-to")) != NULL)
     {
         if      (strcmp(log_arg, "stdout") == 0)
-	    logtype = LOG_STDOUT;
+            logtype = LOG_STDOUT;
 #ifdef USE_SYSLOG
         else if (strcmp(log_arg, "syslog") == 0)
-	    logtype = LOG_SYS;
+            logtype = LOG_SYS;
 #endif
-	else /* logtype already set to 'file' above */
-	    fprintf(stderr, "Warning, selected unknown logging type. " \
-	                    "Will use \"--log-to=file\" instead.\n");
+        else /* logtype already set to 'file' above */
+            fprintf(stderr, "Warning, selected unknown logging type. " \
+                            "Will use \"--log-to=file\" instead.\n");
     }
 
     /* get config dir (must free this) */
