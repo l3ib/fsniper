@@ -69,9 +69,9 @@ void handle_event(struct inotify_event* event, int writefd)
     char isglob;
     char foundslash;
     char *filename;
-    char *path;
+    char *path = NULL;
     char *handlerexec;
-    char *name;
+    char *name = NULL;
     char *newpathenv;
     char *configdir;
     char *scriptdir;
