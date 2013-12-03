@@ -313,7 +313,7 @@ void handle_event(struct inotify_event* event, int writefd)
         if (sysret == 127)
         {
             temp = malloc(27 + strlen(handler->value) + 20 + 1);
-            sprintf("Could not execute handler \"%s\", trying next one.\n", handler->value);
+            sprintf(temp, "Could not execute handler \"%s\", trying next one.\n", handler->value);
             write_out(writefd, temp);
 
             free(temp);
