@@ -193,7 +193,7 @@ void handle_quit_signal(int signum)
 /* handler for reaping children after the fork is done. */
 void handle_child_signal()
 {
-    union wait status;
+    int status;
     while (wait3(&status, WNOHANG, 0) > 0) {} 
 }
 
